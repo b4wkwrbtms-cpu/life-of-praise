@@ -17,6 +17,9 @@ try{
  const {code}=await call('owner','invite','POST');
  await call('drum','me','POST',{name:'검토 드럼',position:'드럼',invite:code});
  await call('guitar','me','POST',{name:'검토 일렉',position:'일렉',invite:code});
+ await call('guitar','me','POST',{name:'검토 성도',position:'성도'});assert.equal((await call('guitar','me')).profile.position,'성도');
+ await call('guitar','me','POST',{name:'검토 교역자',position:'교역자'});assert.equal((await call('guitar','me')).profile.role,'member');await call('guitar','invite','POST',undefined,403);
+ await call('guitar','me','POST',{name:'검토 일렉',position:'일렉'});
  await call('drum','invite','POST',undefined,403);
  const form=['Intro','V','PC','C','Inter','C'].map((type,i)=>({id:'form-'+i,type}));
  const worship={title:'검토 예배',date:'2026-10-04',passage:'본문 입력 검토',translation:'직접 입력',scripture:'기능 검토용 본문입니다.',theme:'',rehearsal:'',notice:'',songs:[{id:'song-1',title:'검토용 찬양',key:'D',bpm:'72',form,pages:[],exports:[],layout:{x:.05,y:.02,width:.9,size:.022,margin:false},notes:'',transition:'',parts:{},link:''}]};

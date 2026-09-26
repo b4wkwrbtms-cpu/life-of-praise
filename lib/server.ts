@@ -8,7 +8,7 @@ export const db=()=>bindings().DB;
 export const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
 export const fail=(code:number,message:string):never=>{throw new ApiError(code,message)};
 export async function identity(){const u=await getChatGPTUser();if(!u)fail(401,'로그인 후 이용해 주세요.');return u!;}
-export async function member(){const u=await identity();const p=await db().prepare('SELECT * FROM profiles WHERE id=?').bind(u.userId).first<Profile>();if(!p||!p.active)fail(403,'이름과 세션을 설정하거나 팀 초대를 확인해 주세요.');return p!;}
+export async function member(){const u=await identity();const p=await db().prepare('SELECT * FROM profiles WHERE id=?').bind(u.userId).first<Profile>();if(!p||!p.active)fail(403,'이름과 역할을 설정하거나 팀 초대를 확인해 주세요.');return p!;}
 export function admin(p:Profile){if(p.role!=='admin')fail(403,'관리자만 변경할 수 있습니다.');}
 export const isOwner=(email:string)=>!!bindings().OWNER_EMAIL&&email.toLowerCase()===bindings().OWNER_EMAIL!.toLowerCase();
 export const idSchema=z.string().min(1).max(100);

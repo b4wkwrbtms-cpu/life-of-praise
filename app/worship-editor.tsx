@@ -8,7 +8,7 @@ import {Slider} from '@/components/ui/slider';
 import {Switch} from '@/components/ui/switch';
 import {toast} from 'sonner';
 import {api,preparePages,renderScore,toBlob,upload} from '@/lib/client';
-import {POSITIONS,SECTIONS,newSong,type Service,type Worship,type Song,formText} from '@/lib/types';
+import {MUSICIAN_POSITIONS as POSITIONS,SECTIONS,newSong,type Service,type Worship,type Song,formText} from '@/lib/types';
 import {Field,Picker} from './ui';
 import SectionMarkerEditor from './section-marker-editor';
 export default function WorshipEditor({service,onClose,onPublished}:{service:Service;onClose:()=>void;onPublished:()=>void}){

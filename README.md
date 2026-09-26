@@ -1,6 +1,6 @@
 # 생명의 찬양
 
-A Korean worship-team workspace. Sign in using platform-owned ChatGPT authentication, then set a name and one of six positions. Only the configured owner account can register and publish official worship plans. Team members require an invitation code plus the Site audience's viewing permission.
+A Korean worship-team workspace. Sign in using platform-owned ChatGPT authentication, then set a name and one of six musician positions or the congregation/ministry roles (성도, 교역자). Role labels never grant administrative permissions. Only the configured owner account can register and publish official worship plans. Team members require an invitation code plus the Site audience's viewing permission.
 
 ## Product
 
