@@ -23,6 +23,12 @@ assert.equal(mg.markerBoxes[0].y,.18*mg.rawHeight);assert.equal(mg.noteBoxes[0].
 const colored=mc.getContext('2d').getImageData(0,280,mg.offsetX,120).data;assert.ok(Array.from(colored).some((x,i)=>i%4!==3&&x<100),'Section label is actually painted');
 const over=await renderScore(createCanvas(1,1),page,{...marked,layout:{...song.layout,leftMargin:false}},notes);assert.equal(over.width,1200);assert.equal(over.markerBoxes.length,2);assert.equal(over.noteBoxes[0].x,g.noteBoxes[0].x);
 const both=await renderScore(createCanvas(1,1),page,{...marked,layout:{...song.layout,margin:true}},notes);assert.equal(both.markerBoxes[0].y-mg.markerBoxes[0].y,both.offset);assert.equal(both.noteBoxes[0].x,mg.noteBoxes[0].x);
+const inlineSong={...marked,layout:{...song.layout,markerStyle:'inline',leftMargin:false},markers:sectionMarks.map((m,i)=>({...m,x:i?.025:.06,y:i?.55:.16,size:.018}))};
+const ic=createCanvas(1,1),ig=await renderScore(ic,page,inlineSong,notes,'INLINE SECTIONS / original score width');
+assert.equal(ig.width,1200,'Inline sections must never add horizontal whitespace');assert.equal(ig.offsetX,0);assert.equal(ig.markerBoxes[0].x,72);assert.equal(ig.markerBoxes[0].y,256);assert.ok(ig.markerBoxes[0].h<30,'Inline labels stay compact');assert.deepEqual(ig.noteBoxes,g.noteBoxes,'Inline sections do not shift personal cues');
+const moved={...inlineSong,markers:[{...inlineSong.markers[0],x:.4,y:.4}]};const movedGeo=await renderScore(createCanvas(1,1),page,moved);assert.equal(movedGeo.markerBoxes[0].x,480);assert.equal(movedGeo.markerBoxes[0].y,640);
+const border=ic.getContext('2d').getImageData(72,256,1,1).data;assert.ok(border[0]<150&&border[1]<150&&border[2]<150,'Box border is dark');
 mkdirSync('.sites-runtime/qa',{recursive:true});writeFileSync('.sites-runtime/qa/score.png',c.toBuffer('image/png'));writeFileSync('.sites-runtime/qa/score-margin.png',a.toBuffer('image/png'));
 writeFileSync('.sites-runtime/qa/score-sections.png',mc.toBuffer('image/png'));
-console.log('PASS: common section labels, per-page filtering, left and top margins preserve personal cue alignment, six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');
+writeFileSync('.sites-runtime/qa/score-inline.png',ic.toBuffer('image/png'));
+console.log('PASS: inline marker width, two-dimensional placement, compact border, common section labels, per-page filtering, left and top margins preserve personal cue alignment, six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');

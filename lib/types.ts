@@ -3,8 +3,8 @@ export const SECTIONS = ['Intro','V','PC','C','Inter','Bridge'] as const;
 export type Position = typeof POSITIONS[number];
 export type Section = { id: string; type: typeof SECTIONS[number] };
 export type ScorePage = { source?:string; id: string; width: number; height: number };
-export type Layout = { x:number; y:number; width:number; size:number; margin:boolean; leftMargin?:boolean };
-export type SectionMarker = { id:string; pageId:string; type:typeof SECTIONS[number]; y:number; size:number };
+export type Layout = { x:number; y:number; width:number; size:number; margin:boolean; leftMargin?:boolean; markerStyle?:'inline' };
+export type SectionMarker = { id:string; pageId:string; type:typeof SECTIONS[number]; x?:number; y:number; size:number };
 export type Song = { id:string; title:string; key:string; bpm:string; form:Section[]; markers?:SectionMarker[]; pages:ScorePage[]; exports:string[]; layout:Layout; notes:string; transition:string; parts:Record<string,string>; link:string };
 export type Worship = { title:string; date:string; passage:string; translation:string; scripture:string; theme:string; rehearsal:string; notice:string; songs:Song[] };
 export type Service = { id:string; date:string; title:string; data:Worship; version:number; revision:number; published:boolean; finalized:boolean; updated:number; changes:string[]; draft?:Worship; seen:number };
@@ -12,7 +12,7 @@ export type Profile = { id:string; name:string; position:Position; role:'admin'|
 export type Note = { id:string; pageId:string; x:number; y:number; text:string; size:number; color:string; sectionId?:string };
 export type Personal = { notes:Note[]; basedVersion:number; reviewed:boolean; revision:number; exports:string[] };
 export type Comment = { id:string; service_id:string; song_id:string; user_id:string; name:string; position:string; text:string; parent_id:string; attachment:string; resolved:number; pinned:number; version:number; created:number };
-export const DEFAULT_LAYOUT:Layout={x:.05,y:.025,width:.9,size:.022,margin:false};
+export const DEFAULT_LAYOUT:Layout={x:.05,y:.025,width:.9,size:.022,margin:false,leftMargin:false,markerStyle:'inline'};
 export function newSong():Song{return {id:crypto.randomUUID(),title:'',key:'',bpm:'',form:[],pages:[],exports:[],layout:{...DEFAULT_LAYOUT},notes:'',transition:'',parts:{},link:''};}
 export function nextSunday(){const now=new Date();const d=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Seoul'}));d.setDate(d.getDate()+((7-d.getDay())%7));return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 export function newWorship():Worship{return {title:'주일예배',date:nextSunday(),passage:'',translation:'',scripture:'',theme:'',rehearsal:'',notice:'',songs:[]};}

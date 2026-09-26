@@ -13,7 +13,8 @@ export async function renderScore(canvas:HTMLCanvasElement,page:ScorePage,song:S
  const im=await loadImage(page.id);await document.fonts.ready;
  const rawWidth=Math.min(1800,page.width),rawHeight=Math.round(rawWidth*page.height/page.width),layout=song.layout,size=Math.max(14,rawWidth*layout.size);
  const markers=(song.markers||[]).filter(m=>m.pageId===page.id);
- const offsetX=markers.length&&layout.leftMargin!==false?Math.max(100,Math.ceil(rawWidth*.13)):0,width=rawWidth+offsetX;
+ const inline=layout.markerStyle==='inline';
+ const offsetX=!inline&&markers.length&&layout.leftMargin!==false?Math.max(100,Math.ceil(rawWidth*.13)):0,width=rawWidth+offsetX;
  const probe=document.createElement('canvas').getContext('2d')!;probe.font=`600 ${size}px Arial, sans-serif`;
  const form=song.form.map(s=>s.type).join(' - '),available=Math.min(layout.width,1-layout.x)*rawWidth,lines=wrap(probe,form,available),lineHeight=size*1.45;
  const offset=layout.margin?Math.max(100,Math.ceil(lines.length*lineHeight+size*2)):0;
@@ -26,9 +27,10 @@ export async function renderScore(canvas:HTMLCanvasElement,page:ScorePage,song:S
  for(const m of markers){
   const text=sectionMarkerText(m.type),maxWidth=offsetX?offsetX-16:rawWidth*.14;
   let ms=Math.max(14,m.size*rawWidth);c.font=`700 ${ms}px Arial, sans-serif`;
-  const measured=c.measureText(text).width+ms*.7;if(measured>maxWidth){ms*=maxWidth/measured;c.font=`700 ${ms}px Arial, sans-serif`;}
-  const w=c.measureText(text).width+ms*.7,h=ms*1.65,x=offsetX?(offsetX-w)/2:rawWidth*.012,y=offset+Math.min(m.y*rawHeight,rawHeight-h);
-  c.fillStyle='#edf3eb';c.fillRect(x,y,w,h);c.fillStyle='#315d48';c.fillRect(x,y,Math.max(2,rawWidth*.002),h);c.fillText(text,x+ms*.35,y+ms*.28);
+  const pad=inline?.35:.7;const measured=c.measureText(text).width+ms*pad;if(measured>maxWidth){ms*=maxWidth/measured;c.font=`700 ${ms}px Arial, sans-serif`;}
+  const w=c.measureText(text).width+ms*pad,h=ms*(inline?1.25:1.65),x=inline?Math.max(1,Math.min((m.x??.02)*rawWidth,rawWidth-w-1)):offsetX?(offsetX-w)/2:rawWidth*.012,y=offset+Math.max(1,Math.min(m.y*rawHeight,rawHeight-h-1));
+  if(inline){c.fillStyle='#fff';c.fillRect(x,y,w,h);c.strokeStyle='#202020';c.lineWidth=Math.max(1,rawWidth*.001);c.strokeRect(x,y,w,h);c.fillStyle='#111';c.fillText(text,x+ms*.175,y+ms*.09);}
+  else{c.fillStyle='#edf3eb';c.fillRect(x,y,w,h);c.fillStyle='#315d48';c.fillRect(x,y,Math.max(2,rawWidth*.002),h);c.fillText(text,x+ms*.35,y+ms*.28);}
   markerBoxes.push({id:m.id,x,y,w,h});
  }
  const noteBoxes:Box[]=[];
