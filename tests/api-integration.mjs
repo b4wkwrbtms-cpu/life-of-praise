@@ -40,11 +40,13 @@ try{
  await call('guitar','comments/'+comment,'PATCH',{text:'타인 수정 시도'},403);
  assert.equal((await call('guitar','comments?service='+service.id))[0].position,'드럼');
  await call('owner',`services/${service.id}/confirm`,'POST',{version:1});
- const v2=structuredClone(worship);v2.songs[0].form.push({id:'form-6',type:'Bridge'});
+ const v2=structuredClone(worship);v2.songs[0].form.push({id:'form-6',type:'Bridge'});v2.songs[0].markers=[{id:'verse-1',pageId:raw,type:'V',y:.2,size:.025},{id:'bridge-1',pageId:raw,type:'Bridge',y:.7,size:.03}];v2.songs[0].layout.leftMargin=true;
+ const invalid=structuredClone(v2);invalid.songs[0].markers[0].pageId='missing-page';await call('owner',`services/${service.id}/publish`,'POST',{revision:2,data:invalid},400);
  await call('owner',`services/${service.id}/publish`,'POST',{revision:2,data:v2});
  const history=await call('drum',`services/${service.id}/versions`);assert.equal(history.length,2);assert.equal(history[1].data.songs[0].form.length,6);assert.equal(history[0].data.songs[0].form.length,7);
+ assert.equal(history[1].data.songs[0].markers,undefined,'Old published scores stay unchanged');assert.deepEqual(history[0].data.songs[0].markers,v2.songs[0].markers,'Common markers survive publishing and member reload');assert.equal(history[0].data.songs[0].layout.leftMargin,true);
  const migrated=await call('drum',`services/${service.id}/personal/song-1?version=2`);assert.equal(migrated.reviewed,false);assert.equal(migrated.notes.length,1);assert.equal(migrated.basedVersion,1);
  await call('drum',`services/${service.id}/confirm`,'POST',{version:1},409);
  await call('owner','team','PATCH',{id:'test-guitar',active:false});await call('guitar','services','GET',undefined,403);
- console.log('PASS: identity, owner-only writes, invitation, private drafts/files, publication, isolated personal notes, stale-write conflicts, comments, archive snapshots, revision review, revoked access.');
+ console.log('PASS: identity, owner-only writes, invitation, private drafts/files, publication, isolated personal notes, stale-write conflicts, comments, archive snapshots, shared section marker persistence and validation, revision review, revoked access.');
 }finally{await mf.dispose();}

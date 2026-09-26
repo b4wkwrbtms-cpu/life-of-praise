@@ -7,6 +7,7 @@ A Korean worship-team workspace. Sign in using platform-owned ChatGPT authentica
 - Weekly scripture, set list, part-specific guidance and rehearsal notes.
 - JPG/PNG and multi-page PDF score uploads into R2. PDF processing takes place in the browser using locally bundled PDF.js resources.
 - Intro, V, PC, C, Inter, Bridge builder; adjustable top-space placement and optional added margin.
+- Common score section labels (Intro, Verse, PC, Chorus, Inter, Bridge): tap a staff row, drag vertically, adjust size, or use the keyboard-accessible position slider. Optional left gutter preserves original score and personal-note coordinates. Markers are page-bound, shared on publication, and retained in archived versions and exports.
 - Shared Canvas renderer for preview and downloadable PNGs. Published exports are persisted.
 - User-isolated, editable performance cues with dragging, size/color, section links, undo and persistent exports.
 - Date-based archive, immutable publication snapshots, copy-to-new-week workflow.

@@ -15,5 +15,14 @@ const g=await renderScore(c,page,song,notes,'2026-10-04 / v1 / DRUM');assert.equ
 const top=c.getContext('2d').getImageData(40,35,1100,70).data;assert.ok(Array.from(top).some((x,i)=>i%4!==3&&x<100),'Song form must paint into the top blank area');
 const a=createCanvas(1,1);const g2=await renderScore(a,page,{...song,layout:{...song.layout,margin:true}},notes,'v2');assert.equal(g2.noteBoxes[0].y-g.noteBoxes[0].y,g2.offset,'Extra header must not change score-relative cue coordinates');
 const long=[{...notes[0],text:'BREAK '.repeat(35)}];const g3=await renderScore(createCanvas(1,1),page,song,long,'long note');assert.ok(g3.noteBoxes[0].w<=1200);assert.ok(g3.noteBoxes[0].h>45);
+const sectionMarks=[{id:'verse',pageId:'fixture',type:'V',y:.18,size:.025},{id:'bridge',pageId:'fixture',type:'Bridge',y:.575,size:.045},{id:'other',pageId:'page-two',type:'C',y:.5,size:.025}];
+const marked={...song,markers:sectionMarks};const mc=createCanvas(1,1),mg=await renderScore(mc,page,marked,notes,'SECTION MARKERS / shared + personal');
+assert.equal(mg.markerBoxes.length,2,'Only markers on this page are painted');assert.ok(mg.offsetX>0);assert.equal(mg.width,mg.rawWidth+mg.offsetX);
+assert.ok(mg.markerBoxes.every(b=>b.x>=0&&b.x+b.w<=mg.offsetX),'All common labels fit inside the new left margin');
+assert.equal(mg.markerBoxes[0].y,.18*mg.rawHeight);assert.equal(mg.noteBoxes[0].x-g.noteBoxes[0].x,mg.offsetX,'Personal cues stay aligned with original score after left margin is added');assert.equal(mg.noteBoxes[0].y,g.noteBoxes[0].y);
+const colored=mc.getContext('2d').getImageData(0,280,mg.offsetX,120).data;assert.ok(Array.from(colored).some((x,i)=>i%4!==3&&x<100),'Section label is actually painted');
+const over=await renderScore(createCanvas(1,1),page,{...marked,layout:{...song.layout,leftMargin:false}},notes);assert.equal(over.width,1200);assert.equal(over.markerBoxes.length,2);assert.equal(over.noteBoxes[0].x,g.noteBoxes[0].x);
+const both=await renderScore(createCanvas(1,1),page,{...marked,layout:{...song.layout,margin:true}},notes);assert.equal(both.markerBoxes[0].y-mg.markerBoxes[0].y,both.offset);assert.equal(both.noteBoxes[0].x,mg.noteBoxes[0].x);
 mkdirSync('.sites-runtime/qa',{recursive:true});writeFileSync('.sites-runtime/qa/score.png',c.toBuffer('image/png'));writeFileSync('.sites-runtime/qa/score-margin.png',a.toBuffer('image/png'));
-console.log('PASS: six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');
+writeFileSync('.sites-runtime/qa/score-sections.png',mc.toBuffer('image/png'));
+console.log('PASS: common section labels, per-page filtering, left and top margins preserve personal cue alignment, six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');
