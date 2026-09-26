@@ -1,5 +1,5 @@
 export const POSITIONS = ['드럼','건반','베이스','싱어','일렉','세컨'] as const;
-export const SECTIONS = ['Intro','V','PC','C','Inter','Bridge'] as const;
+export const SECTIONS = ['Intro','V','V1','V2','PC','C','Inter','Bridge','Outro'] as const;
 export type Position = typeof POSITIONS[number];
 export type Section = { id: string; type: typeof SECTIONS[number] };
 export type ScorePage = { source?:string; id: string; width: number; height: number };

@@ -28,6 +28,11 @@ const ic=createCanvas(1,1),ig=await renderScore(ic,page,inlineSong,notes,'INLINE
 assert.equal(ig.width,1200,'Inline sections must never add horizontal whitespace');assert.equal(ig.offsetX,0);assert.equal(ig.markerBoxes[0].x,72);assert.equal(ig.markerBoxes[0].y,256);assert.ok(ig.markerBoxes[0].h<30,'Inline labels stay compact');assert.deepEqual(ig.noteBoxes,g.noteBoxes,'Inline sections do not shift personal cues');
 const moved={...inlineSong,markers:[{...inlineSong.markers[0],x:.4,y:.4}]};const movedGeo=await renderScore(createCanvas(1,1),page,moved);assert.equal(movedGeo.markerBoxes[0].x,480);assert.equal(movedGeo.markerBoxes[0].y,640);
 const border=ic.getContext('2d').getImageData(72,256,1,1).data;assert.ok(border[0]<150&&border[1]<150&&border[2]<150,'Box border is dark');
+const dark=createCanvas(1200,1600);dark.getContext('2d').fillStyle='#777';dark.getContext('2d').fillRect(0,0,1200,1600);imageCache.set('overlap',Promise.resolve(await loadImage(dark.toBuffer('image/png'))));
+const oc=createCanvas(1,1);await renderScore(oc,{...page,id:'overlap'},{...song,form:['Intro','V1','PC','C','V2','Bridge','Outro'].map((type,i)=>({id:String(i),type})),layout:{...song.layout,width:.3}});
+const white=oc.getContext('2d').getImageData(56,45,1,1).data;assert.deepEqual(Array.from(white),[255,255,255,255],'Song form background is fully opaque white');
+const outside=oc.getContext('2d').getImageData(10,45,1,1).data;assert.equal(outside[0],119,'Outside the form box the original score is preserved');
+const wrapped=oc.getContext('2d').getImageData(56,90,1,1).data;assert.equal(wrapped[0],255,'White background follows wrapped song form');
 mkdirSync('.sites-runtime/qa',{recursive:true});writeFileSync('.sites-runtime/qa/score.png',c.toBuffer('image/png'));writeFileSync('.sites-runtime/qa/score-margin.png',a.toBuffer('image/png'));
 writeFileSync('.sites-runtime/qa/score-sections.png',mc.toBuffer('image/png'));
 writeFileSync('.sites-runtime/qa/score-inline.png',ic.toBuffer('image/png'));

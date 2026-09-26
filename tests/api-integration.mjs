@@ -40,10 +40,10 @@ try{
  await call('guitar','comments/'+comment,'PATCH',{text:'타인 수정 시도'},403);
  assert.equal((await call('guitar','comments?service='+service.id))[0].position,'드럼');
  await call('owner',`services/${service.id}/confirm`,'POST',{version:1});
- const v2=structuredClone(worship);v2.songs[0].form.push({id:'form-6',type:'Bridge'});v2.songs[0].markers=[{id:'verse-1',pageId:raw,type:'V',x:.06,y:.2,size:.025},{id:'bridge-1',pageId:raw,type:'Bridge',y:.7,size:.03}];v2.songs[0].layout.leftMargin=false;v2.songs[0].layout.markerStyle='inline';
+ const v2=structuredClone(worship);v2.songs[0].form.push(...['Bridge','V1','V2','Outro'].map((type,i)=>({id:'form-'+(6+i),type})));v2.songs[0].markers=[{id:'verse-1',pageId:raw,type:'V1',x:.06,y:.2,size:.025},{id:'verse-2',pageId:raw,type:'V2',y:.5,size:.018},{id:'outro-1',pageId:raw,type:'Outro',y:.8,size:.018}];v2.songs[0].layout.leftMargin=false;v2.songs[0].layout.markerStyle='inline';
  const invalid=structuredClone(v2);invalid.songs[0].markers[0].pageId='missing-page';await call('owner',`services/${service.id}/publish`,'POST',{revision:2,data:invalid},400);
  await call('owner',`services/${service.id}/publish`,'POST',{revision:2,data:v2});
- const history=await call('drum',`services/${service.id}/versions`);assert.equal(history.length,2);assert.equal(history[1].data.songs[0].form.length,6);assert.equal(history[0].data.songs[0].form.length,7);
+ const history=await call('drum',`services/${service.id}/versions`);assert.equal(history.length,2);assert.equal(history[1].data.songs[0].form.length,6);assert.equal(history[0].data.songs[0].form.length,10);
  assert.equal(history[1].data.songs[0].markers,undefined,'Old published scores stay unchanged');assert.deepEqual(history[0].data.songs[0].markers,v2.songs[0].markers,'Common markers survive publishing and member reload');assert.equal(history[0].data.songs[0].layout.leftMargin,false);assert.equal(history[0].data.songs[0].layout.markerStyle,'inline');
  const migrated=await call('drum',`services/${service.id}/personal/song-1?version=2`);assert.equal(migrated.reviewed,false);assert.equal(migrated.notes.length,1);assert.equal(migrated.basedVersion,1);
  await call('drum',`services/${service.id}/confirm`,'POST',{version:1},409);

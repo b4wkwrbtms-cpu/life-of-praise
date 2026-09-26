@@ -8,7 +8,7 @@ export function toBlob(c:HTMLCanvasElement){return new Promise<Blob>((resolve,re
 function wrap(ctx:CanvasRenderingContext2D,text:string,max:number){const words=text.split(' '),lines:string[]=[];let line='';for(const w of words){const next=line?line+' '+w:w;if(ctx.measureText(next).width>max&&line){lines.push(line);line=w;}else line=next;while(ctx.measureText(line).width>max&&line.length>1){let cut=line.length-1;while(cut>1&&ctx.measureText(line.slice(0,cut)).width>max)cut--;lines.push(line.slice(0,cut));line=line.slice(cut);}}if(line)lines.push(line);return lines;}
 export type Box={id:string;x:number;y:number;w:number;h:number};
 export type Geometry={width:number;height:number;rawWidth:number;rawHeight:number;offset:number;offsetX:number;noteBoxes:Box[];markerBoxes:Box[];overflow:boolean};
-export function sectionMarkerText(type:SectionMarker['type']){return type==='V'?'Verse':type==='C'?'Chorus':type;}
+export function sectionMarkerText(type:SectionMarker['type']){return type==='V'?'Verse':type==='V1'?'Verse 1':type==='V2'?'Verse 2':type==='C'?'Chorus':type;}
 export async function renderScore(canvas:HTMLCanvasElement,page:ScorePage,song:Song,notes:Note[]=[],meta=''):Promise<Geometry>{
  const im=await loadImage(page.id);await document.fonts.ready;
  const rawWidth=Math.min(1800,page.width),rawHeight=Math.round(rawWidth*page.height/page.width),layout=song.layout,size=Math.max(14,rawWidth*layout.size);
@@ -22,6 +22,7 @@ export async function renderScore(canvas:HTMLCanvasElement,page:ScorePage,song:S
  const c=canvas.getContext('2d')!;c.fillStyle='#fff';c.fillRect(0,0,canvas.width,canvas.height);c.drawImage(im,offsetX,offset,rawWidth,rawHeight);
  c.font=`600 ${size}px Arial, sans-serif`;c.fillStyle='#263c30';c.textBaseline='top';
  const fx=offsetX+layout.x*rawWidth,fy=layout.margin?size:layout.y*rawHeight;
+ if(lines.length){const pad=size*.25,bx=Math.max(offsetX,fx-pad),by=Math.max(0,fy-pad),textWidth=Math.max(...lines.map(line=>c.measureText(line).width));c.fillStyle='#ffffff';c.fillRect(bx,by,Math.min(width-bx,textWidth+pad+fx-bx),lines.length*lineHeight+pad+fy-by);c.fillStyle='#263c30';}
  for(let i=0;i<lines.length;i++)c.fillText(lines[i],fx,fy+i*lineHeight);
  const markerBoxes:Box[]=[];
  for(const m of markers){
