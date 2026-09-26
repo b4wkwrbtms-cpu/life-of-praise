@@ -1,0 +1,22 @@
+import {env} from 'cloudflare:workers';
+import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {z} from 'zod';
+import {POSITIONS,SECTIONS,type Worship,type Profile} from './types';
+export class ApiError extends Error{constructor(public status:number,message:string){super(message)}}
+export const bindings=()=>env as unknown as {DB:D1Database;BUCKET:R2Bucket;OWNER_EMAIL?:string};
+export const db=()=>bindings().DB;
+export const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
+export const fail=(code:number,message:string):never=>{throw new ApiError(code,message)};
+export async function identity(){const u=await getChatGPTUser();if(!u)fail(401,'로그인 후 이용해 주세요.');return u!;}
+export async function member(){const u=await identity();const p=await db().prepare('SELECT * FROM profiles WHERE id=?').bind(u.userId).first<Profile>();if(!p||!p.active)fail(403,'이름과 세션을 설정하거나 팀 초대를 확인해 주세요.');return p!;}
+export function admin(p:Profile){if(p.role!=='admin')fail(403,'관리자만 변경할 수 있습니다.');}
+export const isOwner=(email:string)=>!!bindings().OWNER_EMAIL&&email.toLowerCase()===bindings().OWNER_EMAIL!.toLowerCase();
+export const idSchema=z.string().min(1).max(100);
+const str=(n:number)=>z.string().max(n);
+const page=z.object({source:idSchema.optional(),id:idSchema,width:z.number().positive().max(20000),height:z.number().positive().max(40000)});
+export const songSchema=z.object({id:idSchema,title:str(180),key:str(20),bpm:str(10),form:z.array(z.object({id:idSchema,type:z.enum(SECTIONS)})).max(100),pages:z.array(page).max(30),exports:z.array(idSchema).max(30),layout:z.object({x:z.number().min(0).max(.98),y:z.number().min(0).max(.98),width:z.number().min(.1).max(1),size:z.number().min(.008).max(.07),margin:z.boolean()}),notes:str(4000),transition:str(2000),parts:z.record(str(2000)),link:str(2000).refine(v=>!v||/^https?:\/\//i.test(v),'참고 링크는 https://로 시작해야 합니다.')});
+export const worshipSchema=z.object({title:str(160).min(1),date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>!isNaN(Date.parse(v)),'예배 날짜를 확인해 주세요.'),passage:str(240),translation:str(80),scripture:str(30000),theme:str(4000),rehearsal:str(2000),notice:str(5000),songs:z.array(songSchema).max(30)}).superRefine((d,ctx)=>{if(new Set(d.songs.map(s=>s.id)).size!==d.songs.length)ctx.addIssue({code:'custom',message:'곡 ID가 중복되었습니다.'});for(const s of d.songs){if(new Set(s.form.map(f=>f.id)).size!==s.form.length)ctx.addIssue({code:'custom',message:'송폼 구간 ID가 중복되었습니다.'});}});
+export const profileSchema=z.object({name:str(40).trim().min(1),position:z.enum(POSITIONS),invite:str(100).optional()});
+export async function getService(id:string,p:Profile,version?:number){const r=await db().prepare('SELECT * FROM services WHERE id=?').bind(id).first<any>();if(!r||(!r.published&&p.role!=='admin'))fail(404,'예배를 찾을 수 없습니다.');if(version){const v=await db().prepare('SELECT data FROM versions WHERE service_id=? AND version=?').bind(id,version).first<any>();if(!v)fail(404,'해당 버전이 없습니다.');return {row:r,data:JSON.parse(v.data) as Worship};}return {row:r,data:JSON.parse(r.published||r.draft) as Worship};}
+export function changes(old:Worship|undefined,n:Worship){if(!old)return ['이번 주 말씀과 찬양이 공개되었습니다.'];const a:string[]=[];if(old.passage!==n.passage||old.scripture!==n.scripture)a.push('본문 말씀이 수정되었습니다.');if(old.rehearsal!==n.rehearsal)a.push('연습 안내가 변경되었습니다.');if(old.notice!==n.notice)a.push('공지사항이 변경되었습니다.');if(old.songs.map(x=>x.id).join()!==n.songs.map(x=>x.id).join())a.push('찬양 구성 또는 순서가 변경되었습니다.');for(const s of n.songs){const o=old.songs.find(x=>x.id===s.id);if(!o){a.push(`${s.title}: 추가되었습니다.`);continue;}if(o.form.map(x=>x.type).join()!==s.form.map(x=>x.type).join())a.push(`${s.title}: ${o.form.map(x=>x.type).join(' - ')} → ${s.form.map(x=>x.type).join(' - ')}`);if(o.pages.map(x=>x.id).join()!==s.pages.map(x=>x.id).join())a.push(`${s.title}: 악보가 교체되었습니다.`);if(o.key!==s.key)a.push(`${s.title}: Key ${o.key||'미지정'} → ${s.key}`);if(o.notes!==s.notes||o.transition!==s.transition||JSON.stringify(o.parts)!==JSON.stringify(s.parts))a.push(`${s.title}: 합주 안내가 변경되었습니다.`);}return a.length?a:['예배 자료가 업데이트되었습니다.'];}
+export async function digest(s:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).map(b=>b.toString(16).padStart(2,'0')).join('');}

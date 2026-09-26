@@ -1,0 +1,19 @@
+import {createRequire} from 'node:module';
+import {dirname,resolve} from 'node:path';
+import {mkdirSync,writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const require=createRequire(import.meta.url);
+const {createCanvas,loadImage,GlobalFonts}=await import(require.resolve('@napi-rs/canvas',{paths:[dirname(require.resolve('pdfjs-dist/package.json'))]}));
+GlobalFonts.loadSystemFonts();
+globalThis.document={fonts:{ready:Promise.resolve()},createElement:(tag)=>{assert.equal(tag,'canvas');return createCanvas(1,1)}};
+const {renderScore,imageCache}=await import('../lib/client.ts');
+const original=createCanvas(1200,1600),ctx=original.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,1200,1600);ctx.strokeStyle='#333';for(let s=0;s<5;s++)for(let i=0;i<5;i++){const y=300+s*210+i*18;ctx.beginPath();ctx.moveTo(80,y);ctx.lineTo(1120,y);ctx.stroke();}
+const img=await loadImage(original.toBuffer('image/png'));imageCache.set('fixture',Promise.resolve(img));
+const page={id:'fixture',width:1200,height:1600};const song={form:['Intro','V','PC','C','Inter','C'].map((type,i)=>({id:String(i),type})),layout:{x:.05,y:.025,width:.9,size:.022,margin:false}};
+const c=createCanvas(1,1),notes=[{id:'n1',pageId:'fixture',x:.2,y:.2,text:'BREAK · DRUM SOLO',size:.025,color:'#315d48'}];
+const g=await renderScore(c,page,song,notes,'2026-10-04 / v1 / DRUM');assert.equal(c.width,1200);assert.equal(c.height,1654);assert.equal(g.noteBoxes.length,1);assert.equal(g.noteBoxes[0].y,320);assert.equal(g.overflow,false);
+const top=c.getContext('2d').getImageData(40,35,1100,70).data;assert.ok(Array.from(top).some((x,i)=>i%4!==3&&x<100),'Song form must paint into the top blank area');
+const a=createCanvas(1,1);const g2=await renderScore(a,page,{...song,layout:{...song.layout,margin:true}},notes,'v2');assert.equal(g2.noteBoxes[0].y-g.noteBoxes[0].y,g2.offset,'Extra header must not change score-relative cue coordinates');
+const long=[{...notes[0],text:'BREAK '.repeat(35)}];const g3=await renderScore(createCanvas(1,1),page,song,long,'long note');assert.ok(g3.noteBoxes[0].w<=1200);assert.ok(g3.noteBoxes[0].h>45);
+mkdirSync('.sites-runtime/qa',{recursive:true});writeFileSync('.sites-runtime/qa/score.png',c.toBuffer('image/png'));writeFileSync('.sites-runtime/qa/score-margin.png',a.toBuffer('image/png'));
+console.log('PASS: six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');
