@@ -11,8 +11,9 @@ export default function SectionMarkerEditor({page,song,onChange,meta,disabled=fa
  const [placing,setPlacing]=useState<SectionMarker['type']|null>(null),[selected,setSelected]=useState('');
  useEffect(()=>{setPlacing(null);setSelected('');},[page?.id]);
  const markers=song.markers||[],visible=markers.filter(m=>m.pageId===page?.id),marker=visible.find(m=>m.id===selected);
+ const markerSize=song.layout.markerSize??markers[0]?.size??.018;
  const edit=(id:string,patch:Partial<SectionMarker>)=>onChange({markers:markers.map(m=>m.id===id?{...m,...patch}:m)});
- const add=(x:number,y:number)=>{if(!page||!placing||markers.length>=200)return;const id=crypto.randomUUID();onChange({markers:[...markers,{id,pageId:page.id,type:placing,x,y,size:.018}]});setSelected(id);setPlacing(null);};
+ const add=(x:number,y:number)=>{if(!page||!placing||markers.length>=200)return;const id=crypto.randomUUID();onChange({markers:[...markers,{id,pageId:page.id,type:placing,x,y,size:markerSize}]});setSelected(id);setPlacing(null);};
  return <><fieldset className="section-marker-tools" disabled={disabled||!page}>
   <div className="row spread"><h3><MapPin size={17}/>악보 위 구간 표시</h3><span className="marker-count">이 페이지 {visible.length}개</span></div>
   <p>구간을 고른 뒤 오선 위의 빈 곳을 누르세요. 작은 테두리 상자를 원하는 위치로 끌어 옮길 수 있어요.</p>
@@ -23,7 +24,7 @@ export default function SectionMarkerEditor({page,song,onChange,meta,disabled=fa
    <div className="row spread"><Picker label="선택한 구간 종류" value={marker.type} onChange={type=>edit(marker.id,{type:type as SectionMarker['type']})} options={SECTIONS.map(type=>({value:type,label:type==='V'?'V · Verse':type==='V1'?'V1 · 1절':type==='V2'?'V2 · 2절':type==='C'?'C · Chorus':type}))}/><button type="button" className="text-button danger" onClick={()=>{onChange({markers:markers.filter(m=>m.id!==marker.id)});setSelected('');}}><Trash2 size={16}/>삭제</button></div>
    <div className="slider-field"><span>가로 위치</span><Slider aria-label="구간 표시 가로 위치" disabled={disabled} min={0} max={.98} step={.001} value={[marker.x??.02]} onValueChange={([x])=>edit(marker.id,{x})}/></div>
    <div className="slider-field"><span>세로 위치</span><Slider aria-label="구간 표시 세로 위치" disabled={disabled} min={0} max={.97} step={.001} value={[marker.y]} onValueChange={([y])=>edit(marker.id,{y})}/></div>
-   <div className="slider-field"><span>표시 크기</span><Slider aria-label="구간 표시 글자 크기" disabled={disabled} min={.014} max={.045} step={.001} value={[marker.size]} onValueChange={([size])=>edit(marker.id,{size})}/></div>
+   <div className="slider-field"><span>전체 크기</span><Slider aria-label="모든 구간 표시 크기" disabled={disabled} min={.014} max={.045} step={.001} value={[markerSize]} onValueChange={([size])=>onChange({layout:{...song.layout,markerSize:size},markers:markers.map(m=>({...m,size}))})}/></div>
   </div>}
   <small className="marker-sharing">임시저장 후 ‘팀에 공개’를 누르면 팀 악보와 저장 이미지에 함께 반영됩니다. 상단 송폼 순서는 그대로 유지됩니다.</small>
  </fieldset>

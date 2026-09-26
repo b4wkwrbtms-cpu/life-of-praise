@@ -33,7 +33,11 @@ const oc=createCanvas(1,1);await renderScore(oc,{...page,id:'overlap'},{...song,
 const white=oc.getContext('2d').getImageData(56,45,1,1).data;assert.deepEqual(Array.from(white),[255,255,255,255],'Song form background is fully opaque white');
 const outside=oc.getContext('2d').getImageData(10,45,1,1).data;assert.equal(outside[0],119,'Outside the form box the original score is preserved');
 const wrapped=oc.getContext('2d').getImageData(56,90,1,1).data;assert.equal(wrapped[0],255,'White background follows wrapped song form');
+const uniformTypes=['Intro','V','V1','V2','PC','C','Inter','Bridge','Outro'];
+const uc=createCanvas(1,1),uniformSong={...inlineSong,layout:{...inlineSong.layout,markerSize:.045},markers:uniformTypes.map((type,i)=>({id:'uniform-'+i,pageId:'fixture',type,x:.08,y:.1+i*.08,size:i%2?.014:.045}))};
+const ug=await renderScore(uc,page,uniformSong);assert.equal(new Set(ug.markerBoxes.map(b=>b.h)).size,1,'All nine labels have identical font sizing and box height');assert.equal(new Set(ug.markerBoxes.map(b=>b.w)).size,1,'All nine label boxes have identical width');assert.equal(ug.markerBoxes[2].h,54*1.25,'V1 is never auto-shrunk to fit its text');
 mkdirSync('.sites-runtime/qa',{recursive:true});writeFileSync('.sites-runtime/qa/score.png',c.toBuffer('image/png'));writeFileSync('.sites-runtime/qa/score-margin.png',a.toBuffer('image/png'));
 writeFileSync('.sites-runtime/qa/score-sections.png',mc.toBuffer('image/png'));
 writeFileSync('.sites-runtime/qa/score-inline.png',ic.toBuffer('image/png'));
-console.log('PASS: inline marker width, two-dimensional placement, compact border, common section labels, per-page filtering, left and top margins preserve personal cue alignment, six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');
+writeFileSync('.sites-runtime/qa/score-uniform.png',uc.toBuffer('image/png'));
+console.log('PASS: uniform dimensions across all section labels, shared size, inline marker width, two-dimensional placement, compact border, common section labels, per-page filtering, left and top margins preserve personal cue alignment, six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');

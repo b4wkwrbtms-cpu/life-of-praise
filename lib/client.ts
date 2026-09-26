@@ -8,7 +8,7 @@ export function toBlob(c:HTMLCanvasElement){return new Promise<Blob>((resolve,re
 function wrap(ctx:CanvasRenderingContext2D,text:string,max:number){const words=text.split(' '),lines:string[]=[];let line='';for(const w of words){const next=line?line+' '+w:w;if(ctx.measureText(next).width>max&&line){lines.push(line);line=w;}else line=next;while(ctx.measureText(line).width>max&&line.length>1){let cut=line.length-1;while(cut>1&&ctx.measureText(line.slice(0,cut)).width>max)cut--;lines.push(line.slice(0,cut));line=line.slice(cut);}}if(line)lines.push(line);return lines;}
 export type Box={id:string;x:number;y:number;w:number;h:number};
 export type Geometry={width:number;height:number;rawWidth:number;rawHeight:number;offset:number;offsetX:number;noteBoxes:Box[];markerBoxes:Box[];overflow:boolean};
-export function sectionMarkerText(type:SectionMarker['type']){return type==='V'?'Verse':type==='V1'?'Verse 1':type==='V2'?'Verse 2':type==='C'?'Chorus':type;}
+export function sectionMarkerText(type:SectionMarker['type']){return type==='V'?'Verse':type==='C'?'Chorus':type;}
 export async function renderScore(canvas:HTMLCanvasElement,page:ScorePage,song:Song,notes:Note[]=[],meta=''):Promise<Geometry>{
  const im=await loadImage(page.id);await document.fonts.ready;
  const rawWidth=Math.min(1800,page.width),rawHeight=Math.round(rawWidth*page.height/page.width),layout=song.layout,size=Math.max(14,rawWidth*layout.size);
@@ -25,12 +25,15 @@ export async function renderScore(canvas:HTMLCanvasElement,page:ScorePage,song:S
  if(lines.length){const pad=size*.25,bx=Math.max(offsetX,fx-pad),by=Math.max(0,fy-pad),textWidth=Math.max(...lines.map(line=>c.measureText(line).width));c.fillStyle='#ffffff';c.fillRect(bx,by,Math.min(width-bx,textWidth+pad+fx-bx),lines.length*lineHeight+pad+fy-by);c.fillStyle='#263c30';}
  for(let i=0;i<lines.length;i++)c.fillText(lines[i],fx,fy+i*lineHeight);
  const markerBoxes:Box[]=[];
+ const commonSize=Math.max(14,(layout.markerSize??song.markers?.[0]?.size??.018)*rawWidth);
+ c.font=`700 ${commonSize}px Arial, sans-serif`;
+ const commonWidth=Math.max(...['Intro','Verse','V1','V2','PC','Chorus','Inter','Bridge','Outro'].map(t=>c.measureText(t).width))+commonSize*.5;
  for(const m of markers){
   const text=sectionMarkerText(m.type),maxWidth=offsetX?offsetX-16:rawWidth*.14;
-  let ms=Math.max(14,m.size*rawWidth);c.font=`700 ${ms}px Arial, sans-serif`;
-  const pad=inline?.35:.7;const measured=c.measureText(text).width+ms*pad;if(measured>maxWidth){ms*=maxWidth/measured;c.font=`700 ${ms}px Arial, sans-serif`;}
-  const w=c.measureText(text).width+ms*pad,h=ms*(inline?1.25:1.65),x=inline?Math.max(1,Math.min((m.x??.02)*rawWidth,rawWidth-w-1)):offsetX?(offsetX-w)/2:rawWidth*.012,y=offset+Math.max(1,Math.min(m.y*rawHeight,rawHeight-h-1));
-  if(inline){c.fillStyle='#fff';c.fillRect(x,y,w,h);c.strokeStyle='#202020';c.lineWidth=Math.max(1,rawWidth*.001);c.strokeRect(x,y,w,h);c.fillStyle='#111';c.fillText(text,x+ms*.175,y+ms*.09);}
+  let ms=inline?commonSize:Math.max(14,m.size*rawWidth);c.font=`700 ${ms}px Arial, sans-serif`;
+  const pad=inline?.35:.7;const measured=c.measureText(text).width+ms*pad;if(!inline&&measured>maxWidth){ms*=maxWidth/measured;c.font=`700 ${ms}px Arial, sans-serif`;}
+  const w=inline?commonWidth:c.measureText(text).width+ms*pad,h=ms*(inline?1.25:1.65),x=inline?Math.max(1,Math.min((m.x??.02)*rawWidth,rawWidth-w-1)):offsetX?(offsetX-w)/2:rawWidth*.012,y=offset+Math.max(1,Math.min(m.y*rawHeight,rawHeight-h-1));
+  if(inline){c.fillStyle='#fff';c.fillRect(x,y,w,h);c.strokeStyle='#202020';c.lineWidth=Math.max(1,rawWidth*.001);c.strokeRect(x,y,w,h);c.fillStyle='#111';c.textBaseline='alphabetic';const metrics=c.measureText('Mg');const ascent=metrics.actualBoundingBoxAscent,descent=metrics.actualBoundingBoxDescent;c.fillText(text,x+(w-c.measureText(text).width)/2,y+(h+ascent-descent)/2);c.textBaseline='top';}
   else{c.fillStyle='#edf3eb';c.fillRect(x,y,w,h);c.fillStyle='#315d48';c.fillRect(x,y,Math.max(2,rawWidth*.002),h);c.fillText(text,x+ms*.35,y+ms*.28);}
   markerBoxes.push({id:m.id,x,y,w,h});
  }
