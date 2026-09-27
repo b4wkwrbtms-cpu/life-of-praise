@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {purgeService} from '@/lib/purge-service';
 import {ApiError,admin,bindings,changes,db,digest,fail,getService,identity,isOwner,json,member,profileSchema,worshipSchema,songSchema} from '@/lib/server';
 import type {Profile,Worship} from '@/lib/types';
 export const dynamic='force-dynamic';
@@ -54,6 +55,7 @@ if(path[0]==='services'){
  return json(rows.results.map(r=>({id:r.id,title:r.title,date:r.date,data:JSON.parse(r.published||r.draft),...(p.role==='admin'?{draft:JSON.parse(r.draft),hasDraft:!!r.published&&r.draft!==r.published}:{}),deleted:!!r.deleted,version:r.version,revision:r.revision,published:!!r.published,finalized:!!r.finalized,updated:r.updated,changes:JSON.parse(r.changes),seen:r.seen})));}
  if(path.length===1&&method==='POST'){admin(p);const d=worshipSchema.parse(await read(req));const id=crypto.randomUUID();await db().prepare('INSERT INTO services (id,title,date,draft,version,revision,finalized,updated,changes) VALUES (?,?,?,?,0,1,0,?,?)').bind(id,d.title,d.date,JSON.stringify(d),Date.now(),'[]').run();return json({id,revision:1});}
  const id=path[1];if(!id)fail(404,'경로가 없습니다.');
+ if(path.length===3&&path[2]==='purge'&&method==='DELETE'){admin(p);const v=z.object({revision:z.number().int().min(1)}).parse(await read(req));return json(await purgeService(id,v.revision));}
  if(path[2]==='restore'&&method==='POST'){admin(p);const v=z.object({revision:z.number().int()}).parse(await read(req));const r=await db().prepare('UPDATE services SET deleted=0,revision=revision+1,updated=? WHERE id=? AND deleted=1 AND revision=?').bind(Date.now(),id,v.revision).run();if(!r.meta.changes)fail(409,'목록이 변경되었습니다. 휴지통을 새로고침해 주세요.');return json({ok:true});}
  const {row,data}=await getService(id,p);
  if(path.length===2&&method==='DELETE'){admin(p);const v=z.object({revision:z.number().int()}).parse(await read(req));const r=await db().prepare('UPDATE services SET deleted=1,revision=revision+1,updated=? WHERE id=? AND deleted=0 AND revision=?').bind(Date.now(),id,v.revision).run();if(!r.meta.changes)fail(409,'자료가 변경되었습니다. 새로고침 후 삭제해 주세요.');return json({ok:true});}

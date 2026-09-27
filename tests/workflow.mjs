@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {parseSongForm,publicationIssues,nextCopyDate,selectCurrentService,newSong,newWorship} from '../lib/types.ts';
+import {parseSongForm,publicationIssues,nextCopyDate,selectCurrentService,newSong,newWorship,weekShareText} from '../lib/types.ts';
 assert.deepEqual(parseSongForm('Intro - V1 - Cx2 - Bridge x 2 - Outro'),['Intro','V1','Cx2','Bridge x 2','Outro']);
 assert.deepEqual(parseSongForm('intro → v2 → C × 2 / Bridge ×2, outro'),['Intro','V2','Cx2','Bridge x 2','Outro']);
 assert.deepEqual(parseSongForm('V1 PC C\nInter'),['V1','PC','C','Inter']);
@@ -20,3 +20,14 @@ assert.ok(publicationIssues(worship).some(i=>i.songId===song.id&&i.label.include
 worship.passage='시편 95';worship.scripture='검토용 본문';song.title='검토 찬양';song.form=parseSongForm('V1 - Cx2 - Bridge x 2').map(type=>({id:crypto.randomUUID(),type}));song.pages=[{id:'page',width:1200,height:1600}];
 assert.deepEqual(publicationIssues(worship),[]);
 console.log('PASS: repeated forms, pasted separators, invalid forms, next-week dates, published selection and targeted readiness checks');
+
+const shareOptions={scripture:true,form:true,notice:true,links:true};
+song.link='https://www.youtube.com/watch?v=fixture123&t=30';
+const another={...newSong(),title:'두 번째 찬양',link:'https://youtu.be/fixture456'};worship.songs.push(another);
+let share=weekShareText(worship,shareOptions);
+assert.ok(share.indexOf(song.link)<share.indexOf('2. 두 번째 찬양'));
+assert.ok(share.includes('유튜브: '+another.link));
+assert.ok(!weekShareText(worship,{...shareOptions,links:false}).includes('https://'));
+another.link='';assert.ok(!weekShareText(worship,shareOptions).split('2. 두 번째 찬양')[1].includes('유튜브:'));
+song.link='javascript:alert(1)';assert.ok(!weekShareText(worship,shareOptions).includes('javascript:'));
+console.log('PASS: per-song YouTube URLs, absent links, optional link sharing and invalid URL exclusion');

@@ -46,3 +46,14 @@ export function selectCurrentService(services:Service[],selected:string,today:st
  const published=services.filter(s=>s.published);const pool=published.length?published:services;
  return [...pool].sort((a,b)=>a.date.localeCompare(b.date)).find(s=>s.date>=today)||[...pool].sort((a,b)=>b.date.localeCompare(a.date))[0];
 }
+export function weekShareText(d:Worship,options:{scripture:boolean;form:boolean;notice:boolean;links:boolean}){
+ const songs=d.songs.map((s,i)=>{
+  const lines=[`${i+1}. ${s.title}${s.key?' · '+s.key+' Key':''}`];
+  if(options.form)lines.push('송폼: '+formText(s));
+  if(options.links&&s.link.trim()){
+   try{const url=new URL(s.link.trim());if(['https:','http:'].includes(url.protocol)){const youtube=['youtube.com','www.youtube.com','m.youtube.com','music.youtube.com','youtu.be','www.youtu.be'].includes(url.hostname);lines.push(`${youtube?'유튜브':'참고 음원'}: ${s.link.trim()}`)}}catch{}
+  }
+  return lines.join('\n');
+ });
+ return [`[${d.date} ${d.title}]`,'',`📖 이번 주 말씀 | ${d.passage}${d.translation?' ('+d.translation+')':''}`,...(options.scripture?[d.scripture]:[]),'','🎵 찬양 순서',...songs,...(options.notice&&d.rehearsal?['',`연습 안내: ${d.rehearsal}`]:[]),...(options.notice&&d.notice?['',`공지: ${d.notice}`]:[])].join('\n');
+}

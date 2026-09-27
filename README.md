@@ -42,3 +42,9 @@ A new Site is owner-private. The owner must use Site sharing to authorize team v
 - Personal-cue relocation keeps the original position until confirmed; rendering a common image never writes into personal annotations.
 
 `node tests/workflow.mjs` checks repeat parsing, service selection, readiness and copy dates. No production records are seeded or modified by tests.
+
+## Chat sharing and permanent trash deletion
+
+Chat copy includes each song's saved YouTube or reference-audio URL by default, with a toggle to omit links. Empty or invalid links produce no dangling label. No external messages are sent automatically.
+
+Admins can permanently delete one or selected trashed services. The confirmation names the dates/titles and explains that restoration will no longer be possible. The server atomically deletes the revision-matched service plus its versions, comments, personal cues and confirmations. Unreferenced associated file metadata and blobs are cleaned up; files referenced by other services (including trash), archived versions, fixed songs, personal sheets or comments are retained. Cleanup failure is logged without reversing a completed service deletion. Tests use isolated synthetic records only.

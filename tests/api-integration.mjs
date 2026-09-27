@@ -95,6 +95,37 @@ try{
  assert.equal((await call('owner','fixed-songs')).length,0);
  assert.equal((await call('drum',`services/${service.id}/versions`)).length,2);
  console.log('PASS: library soft delete, restoration, draft discard, stale-write protection, fixed-song catalog isolation and permissions.');
+
+ // Permanent deletion is restricted to revision-matched trash and removes its
+ // dependent records, while score files reused elsewhere remain intact.
+ await call('drum',`services/${service.id}/purge`,'DELETE',{revision:7},403);
+ await call('owner',`services/${service.id}/purge`,'DELETE',{revision:7},400);
+ const retainedFixed=await call('owner','fixed-songs','POST',{song:v2.songs[0],autoAdd:false});
+ const uniqueRaw=await upload('owner','raw'),uniqueExport=await upload('owner','export');
+ const deletePlan=structuredClone(worship);deletePlan.songs[0].pages=[{id:uniqueRaw,width:192,height:192},{id:raw,width:192,height:192}];deletePlan.songs[0].exports=[uniqueExport,exp];
+ const deleteService=await call('owner','services','POST',deletePlan);
+ await call('owner',`services/${deleteService.id}/publish`,'POST',{revision:1,data:deletePlan});
+ const personalExport=await upload('drum','personal');
+ await call('drum',`services/${deleteService.id}/personal/song-1?version=1`,'PUT',{revision:0,notes:[],exports:[personalExport]});
+ const commentFile=await upload('drum','comment');
+ await call('drum','comments','POST',{serviceId:deleteService.id,songId:'song-1',text:'삭제 검증',attachment:commentFile});
+ await call('drum',`services/${deleteService.id}/confirm`,'POST',{version:1});
+ await call('owner',`services/${deleteService.id}`,'DELETE',{revision:2});
+ await call('owner',`services/${deleteService.id}/purge`,'DELETE',{revision:2},409);
+ assert.equal((await db.prepare('SELECT count(*) AS n FROM versions WHERE service_id=?').bind(deleteService.id).first()).n,1,'Stale purge must leave history intact');
+ await call('drum',`services/${deleteService.id}/purge`,'DELETE',{revision:3},403);
+ await call('owner',`services/${deleteService.id}/purge`,'DELETE',{revision:3});
+ for(const table of ['versions','comments','personal','confirmations'])assert.equal((await db.prepare(`SELECT count(*) AS n FROM ${table} WHERE service_id=?`).bind(deleteService.id).first()).n,0,table+' must be purged');
+ assert.equal(await db.prepare('SELECT id FROM services WHERE id=?').bind(deleteService.id).first(),null);
+ const bucket=await mf.getR2Bucket('BUCKET');
+ for(const fid of [uniqueRaw,uniqueExport,personalExport,commentFile]){assert.equal(await db.prepare('SELECT id FROM files WHERE id=?').bind(fid).first(),null);assert.equal(await bucket.get(fid),null,'Unreferenced object must be removed');}
+ for(const fid of [raw,exp]){assert.ok(await db.prepare('SELECT id FROM files WHERE id=?').bind(fid).first());assert.ok(await bucket.get(fid),'Shared source stays available');}
+ assert.ok((await call('owner','fixed-songs')).some(f=>f.id===retainedFixed.id));
+ assert.equal((await call('drum',`services/${service.id}/versions`)).length,2);
+ await call('owner',`services/${deleteService.id}/restore`,'POST',{revision:3},409);
+ await call('owner',`services/${deleteService.id}/purge`,'DELETE',{revision:3},404);
+ assert.ok(!(await call('owner','services?trash=1')).some(s=>s.id===deleteService.id));
+ console.log('PASS: admin-only permanent deletion, trash-only and stale-revision guards, dependent record cleanup, unused blob removal and retained shared/fixed-song scores');
  await call('owner','team','PATCH',{id:'test-guitar',active:false});await call('guitar','services','GET',undefined,403);
  console.log('PASS: identity, owner-only writes, invitation, private drafts/files, publication, isolated personal notes, stale-write conflicts, comments, archive snapshots, shared section marker persistence and validation, revision review, revoked access.');
 }finally{await mf.dispose();}
