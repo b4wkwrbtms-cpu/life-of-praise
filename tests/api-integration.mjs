@@ -7,7 +7,7 @@ const {Miniflare}=await import(require.resolve('miniflare',{paths:[dirname(requi
 const root=resolve('dist/server');const paths=readdirSync(root,{recursive:true}).filter(p=>p.endsWith('.js')||p.endsWith('.mjs'));paths.sort((a,b)=>a==='index.js'?-1:b==='index.js'?1:a.localeCompare(b));const modules=paths.map(p=>({type:'ESModule',path:resolve(root,p)}));
 const mf=new Miniflare({modules,modulesRoot:root,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['BUCKET'],bindings:{OWNER_EMAIL:'owner@example.test'}});
 try{
- const db=await mf.getD1Database('DB');const sql=readFileSync('drizzle/0000_curvy_starhawk.sql','utf8');for(const query of sql.split('--> statement-breakpoint').map(x=>x.trim()).filter(Boolean))await db.prepare(query).run();
+ const db=await mf.getD1Database('DB');for(const file of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort()){const sql=readFileSync('drizzle/'+file,'utf8');for(const query of sql.split('--> statement-breakpoint').map(x=>x.trim()).filter(Boolean))await db.prepare(query).run();}
  const users={owner:['test-owner','owner@example.test'],drum:['test-drum','drum@example.test'],guitar:['test-guitar','guitar@example.test']};
  const call=async(who,path,method='GET',body,expected=200)=>{const headers={};if(who){headers['oai-authenticated-user-id']=users[who][0];headers['oai-authenticated-user-email']=users[who][1];}if(body)headers['content-type']='application/json';const res=await mf.dispatchFetch('http://app.test/api/'+path,{method,headers,body:body?JSON.stringify(body):undefined});const value=await res.json();assert.equal(res.status,expected,JSON.stringify({path,status:res.status,value}));return value;};
  await call(null,'me','GET',undefined,401);
@@ -52,6 +52,48 @@ try{
  assert.equal(history[0].data.songs[0].pages[0].layout.x,.2);assert.equal(history[0].data.songs[0].pages[1].layout.x,.06);assert.equal(history[0].data.songs[0].pages[0].layout.size,.035);assert.equal(history[0].data.songs[0].pages[1].layout.size,.018);assert.equal(history[1].data.songs[0].pages[0].layout,undefined,'Historic page layout is not overwritten');
  const migrated=await call('drum',`services/${service.id}/personal/song-1?version=2`);assert.equal(migrated.reviewed,false);assert.equal(migrated.notes.length,1);assert.equal(migrated.basedVersion,1);
  await call('drum',`services/${service.id}/confirm`,'POST',{version:1},409);
+ // Library cleanup preserves published snapshots and enforces owner-only revisions.
+ await call('drum','services?trash=1','GET',undefined,403);
+ await call('drum',`services/${service.id}`,'DELETE',{revision:3},403);
+ const draft=structuredClone(v2);draft.notice='Unpublished edit';
+ await call('owner',`services/${service.id}`,'PUT',{revision:3,data:draft});
+ assert.equal((await call('owner','services'))[0].hasDraft,true);
+ await call('owner',`services/${service.id}/discard-draft`,'POST',{revision:3},409);
+ await call('owner',`services/${service.id}/discard-draft`,'POST',{revision:4});
+ assert.equal((await call('owner','services'))[0].hasDraft,false);
+ assert.equal((await call('drum','services'))[0].data.notice,'');
+ await call('owner',`services/${service.id}`,'DELETE',{revision:4},409);
+ await call('owner',`services/${service.id}`,'DELETE',{revision:5});
+ assert.equal((await call('owner','services')).length,0);
+ assert.equal((await call('drum','services')).length,0);
+ const trashed=(await call('owner','services?trash=1'))[0];assert.equal(trashed.revision,6);
+ await call('owner',`services/${service.id}/versions`,'GET',undefined,404);
+ await call('owner',`services/${service.id}`,'PUT',{revision:6,data:draft},404);
+ await call('drum',`services/${service.id}/restore`,'POST',{revision:6},403);
+ await call('owner',`services/${service.id}/restore`,'POST',{revision:5},409);
+ await call('owner',`services/${service.id}/restore`,'POST',{revision:6});
+ assert.equal((await call('drum',`services/${service.id}/versions`)).length,2);
+ assert.equal((await call('owner','services?trash=1')).length,0);
+ const emptyDraft=await call('owner','services','POST',worship);
+ await call('owner',`services/${emptyDraft.id}`,'DELETE',{revision:1});
+ assert.equal((await call('owner','services')).length,1);
+ // Fixed songs are standalone snapshots, never live references into past weeks.
+ await call('drum','fixed-songs','GET',undefined,403);
+ const fs=await call('owner','fixed-songs','POST',{song:v2.songs[0],autoAdd:true});
+ let catalog=await call('owner','fixed-songs');assert.equal(catalog[0].autoAdd,true);assert.deepEqual(catalog[0].data.exports,[]);
+ const copied=structuredClone(v2);copied.songs=[{...catalog[0].data,id:'new-week-song'}];
+ const copiedService=await call('owner','services','POST',copied);
+ const fixedUpdate=structuredClone(catalog[0].data);fixedUpdate.form=[{id:'new-form',type:'Outro'}];
+ await call('owner','fixed-songs/'+fs.id,'PUT',{song:fixedUpdate,revision:1,autoAdd:true});
+ const weeks=await call('owner','services');assert.equal(weeks.find(s=>s.id===copiedService.id).data.songs[0].form.length,10);assert.equal(weeks.find(s=>s.id===service.id).data.songs[0].form.length,10);
+ await call('owner','fixed-songs/'+fs.id,'PATCH',{revision:1,autoAdd:false},409);
+ await call('owner','fixed-songs/'+fs.id,'PATCH',{revision:2,autoAdd:false});
+ assert.equal((await call('owner','fixed-songs'))[0].autoAdd,false);
+ await call('drum','fixed-songs/'+fs.id,'DELETE',{revision:3},403);
+ await call('owner','fixed-songs/'+fs.id,'DELETE',{revision:3});
+ assert.equal((await call('owner','fixed-songs')).length,0);
+ assert.equal((await call('drum',`services/${service.id}/versions`)).length,2);
+ console.log('PASS: library soft delete, restoration, draft discard, stale-write protection, fixed-song catalog isolation and permissions.');
  await call('owner','team','PATCH',{id:'test-guitar',active:false});await call('guitar','services','GET',undefined,403);
  console.log('PASS: identity, owner-only writes, invitation, private drafts/files, publication, isolated personal notes, stale-write conflicts, comments, archive snapshots, shared section marker persistence and validation, revision review, revoked access.');
 }finally{await mf.dispose();}
