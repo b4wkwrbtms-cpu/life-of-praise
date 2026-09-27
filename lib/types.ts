@@ -1,6 +1,6 @@
 export const MUSICIAN_POSITIONS = ['드럼','건반','베이스','싱어','일렉','세컨'] as const;
 export const POSITIONS = [...MUSICIAN_POSITIONS,'성도','교역자'] as const;
-export const SECTIONS = ['Intro','V','V1','V2','PC','C','Inter','Bridge','Outro'] as const;
+export const SECTIONS = ['Intro','V','V1','V2','PC','C','Cx2','Inter','Bridge','Bridge x 2','Outro'] as const;
 export type Position = typeof POSITIONS[number];
 export type Section = { id: string; type: typeof SECTIONS[number] };
 export type ScorePage = { source?:string; id: string; width: number; height: number; layout?:Layout };
@@ -9,7 +9,7 @@ export type SectionMarker = { id:string; pageId:string; type:typeof SECTIONS[num
 export type Song = { fixedId?:string; id:string; title:string; key:string; bpm:string; form:Section[]; markers?:SectionMarker[]; pages:ScorePage[]; exports:string[]; layout:Layout; notes:string; transition:string; parts:Record<string,string>; link:string };
 export type Worship = { title:string; date:string; passage:string; translation:string; scripture:string; theme:string; rehearsal:string; notice:string; songs:Song[] };
 export type FixedSong = {id:string;title:string;data:Song;revision:number;autoAdd:boolean;updated:number};
-export type Service = { deleted?:boolean; hasDraft?:boolean; id:string; date:string; title:string; data:Worship; version:number; revision:number; published:boolean; finalized:boolean; updated:number; changes:string[]; draft?:Worship; seen:number };
+export type Service = { pendingEdit?:boolean; deleted?:boolean; hasDraft?:boolean; id:string; date:string; title:string; data:Worship; version:number; revision:number; published:boolean; finalized:boolean; updated:number; changes:string[]; draft?:Worship; seen:number };
 export type Profile = { id:string; name:string; position:Position; role:'admin'|'member'; active:number };
 export type Note = { id:string; pageId:string; x:number; y:number; text:string; size:number; color:string; sectionId?:string };
 export type Personal = { notes:Note[]; basedVersion:number; reviewed:boolean; revision:number; exports:string[] };
@@ -20,3 +20,29 @@ export function nextSunday(){const now=new Date();const d=new Date(now.toLocaleS
 export function newWorship():Worship{return {title:'주일예배',date:nextSunday(),passage:'',translation:'',scripture:'',theme:'',rehearsal:'',notice:'',songs:[]};}
 export function formText(s:Song){return s.form.map(f=>f.type).join(' - ');}
 export function dateLabel(d:string){return new Date(d+'T12:00:00+09:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'long',timeZone:'Asia/Seoul'});}
+export function parseSongForm(text:string):Section['type'][] {
+ const normalized=text.replace(/bridge\s*[x×]\s*2/gi,'Bridge_x_2').replace(/c\s*[x×]\s*2/gi,'Cx2');
+ const tokens=normalized.trim().split(/\s*[-–—>→,·/\n]+\s*|\s+/).filter(Boolean);
+ if(!tokens.length)throw new Error('송폼을 먼저 입력해 주세요.');
+ if(tokens.length>100)throw new Error('송폼은 100개 구간까지 넣을 수 있습니다.');
+ return tokens.map(t=>{const type=SECTIONS.find(s=>s.toLowerCase()===t.replaceAll('_',' ').toLowerCase());if(!type)throw new Error(`“${t}” 구간을 확인해 주세요. ${SECTIONS.join(' · ')} 사용 가능`);return type;});
+}
+export function publicationIssues(d:Worship):{label:string;songId?:string}[]{
+ const issues:{label:string;songId?:string}[]=[];
+ if(!d.title.trim())issues.push({label:'예배 이름을 입력해 주세요.'});
+ if(!d.date||isNaN(Date.parse(d.date)))issues.push({label:'예배 날짜를 선택해 주세요.'});
+ if(!d.passage.trim())issues.push({label:'본문 범위를 입력해 주세요.'});
+ if(!d.scripture.trim())issues.push({label:'본문 말씀을 입력해 주세요.'});
+ if(!d.songs.length)issues.push({label:'찬양을 추가해 주세요.'});
+ d.songs.forEach((s,i)=>{const missing=[!s.title.trim()&&'제목',!s.pages.length&&'악보',!s.form.length&&'송폼'].filter(Boolean);if(missing.length)issues.push({label:`${i+1}. ${s.title||'새 찬양'}: ${missing.join(' · ')} 필요`,songId:s.id});});
+ return issues;
+}
+export function nextCopyDate(sourceDate:string,today=nextSunday()){
+ const next=new Date(sourceDate+'T12:00:00Z');next.setUTCDate(next.getUTCDate()+7);
+ const date=next.toISOString().slice(0,10);return date>today?date:today;
+}
+export function selectCurrentService(services:Service[],selected:string,today:string){
+ const exact=services.find(s=>s.id===selected);if(exact)return exact;
+ const published=services.filter(s=>s.published);const pool=published.length?published:services;
+ return [...pool].sort((a,b)=>a.date.localeCompare(b.date)).find(s=>s.date>=today)||[...pool].sort((a,b)=>b.date.localeCompare(a.date))[0];
+}

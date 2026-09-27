@@ -30,3 +30,15 @@ Use the Sites build workflow, then `node tests/api-integration.mjs` and `node te
 ## Access
 
 A new Site is owner-private. The owner must use Site sharing to authorize team viewers; application invitation codes then permit those signed-in users to join the team. Application invitations cannot override Site-level access. No app-owned passwords are stored.
+
+## Preparation and rehearsal refinements
+
+- Repeated song-form buttons: `Cx2` and `Bridge x 2`, including normalized pasted arrows, multiplication signs, commas and line breaks. Existing score section boxes keep their geometry.
+- Opening an unchanged plan no longer writes a draft. Serial autosave, online retry, visible saved status, editing lock during publication and upload, and per-action undo/redo preserve work. Missing publication fields link to the relevant song.
+- Mobile preparation has separate details and score workspaces, with page controls and page-specific header settings beside the preview.
+- The archive includes unpublished and revised drafts; multi-selection safely discards only revisions of published worship, moves unpublished worship to trash, and restores multiple trashed services.
+- The rehearsal reader supports page/width/150% views, minimal controls, next-song hints, remembered viewing position per published version on this device, and no page-turn during multi-touch zoom.
+- Copying to chat supports optional full scripture, song forms and notices. New-week copies advance the service date.
+- Personal-cue relocation keeps the original position until confirmed; rendering a common image never writes into personal annotations.
+
+`node tests/workflow.mjs` checks repeat parsing, service selection, readiness and copy dates. No production records are seeded or modified by tests.

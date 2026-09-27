@@ -43,13 +43,14 @@ try{
  await call('guitar','comments/'+comment,'PATCH',{text:'타인 수정 시도'},403);
  assert.equal((await call('guitar','comments?service='+service.id))[0].position,'드럼');
  await call('owner',`services/${service.id}/confirm`,'POST',{version:1});
- const v2=structuredClone(worship);v2.songs[0].form.push(...['Bridge','V1','V2','Outro'].map((type,i)=>({id:'form-'+(6+i),type})));v2.songs[0].markers=[{id:'verse-1',pageId:raw,type:'V1',x:.06,y:.2,size:.025},{id:'verse-2',pageId:raw,type:'V2',y:.5,size:.018},{id:'outro-1',pageId:raw,type:'Outro',y:.8,size:.018}];v2.songs[0].layout.leftMargin=false;v2.songs[0].layout.markerStyle='inline';v2.songs[0].layout.markerSize=.028;
+ const v2=structuredClone(worship);v2.songs[0].form.push(...['Bridge','V1','V2','Cx2','Bridge x 2','Outro'].map((type,i)=>({id:'form-'+(6+i),type})));v2.songs[0].markers=[{id:'verse-1',pageId:raw,type:'V1',x:.06,y:.2,size:.025},{id:'verse-2',pageId:raw,type:'V2',y:.5,size:.018},{id:'outro-1',pageId:raw,type:'Outro',y:.8,size:.018}];v2.songs[0].layout.leftMargin=false;v2.songs[0].layout.markerStyle='inline';v2.songs[0].layout.markerSize=.028;
  v2.songs[0].pages[0].layout={...v2.songs[0].layout,x:.2,size:.035};const secondRaw=await upload('owner','raw'),secondExport=await upload('owner','export');v2.songs[0].pages.push({id:secondRaw,width:192,height:192,layout:{...v2.songs[0].layout,x:.06,size:.018}});v2.songs[0].exports.push(secondExport);
  const invalid=structuredClone(v2);invalid.songs[0].markers[0].pageId='missing-page';await call('owner',`services/${service.id}/publish`,'POST',{revision:2,data:invalid},400);
  await call('owner',`services/${service.id}/publish`,'POST',{revision:2,data:v2});
- const history=await call('drum',`services/${service.id}/versions`);assert.equal(history.length,2);assert.equal(history[1].data.songs[0].form.length,6);assert.equal(history[0].data.songs[0].form.length,10);
+ const history=await call('drum',`services/${service.id}/versions`);assert.equal(history.length,2);assert.equal(history[1].data.songs[0].form.length,6);assert.equal(history[0].data.songs[0].form.length,12);
  assert.equal(history[1].data.songs[0].markers,undefined,'Old published scores stay unchanged');assert.deepEqual(history[0].data.songs[0].markers,v2.songs[0].markers,'Common markers survive publishing and member reload');assert.equal(history[0].data.songs[0].layout.leftMargin,false);assert.equal(history[0].data.songs[0].layout.markerStyle,'inline');assert.equal(history[0].data.songs[0].layout.markerSize,.028);
  assert.equal(history[0].data.songs[0].pages[0].layout.x,.2);assert.equal(history[0].data.songs[0].pages[1].layout.x,.06);assert.equal(history[0].data.songs[0].pages[0].layout.size,.035);assert.equal(history[0].data.songs[0].pages[1].layout.size,.018);assert.equal(history[1].data.songs[0].pages[0].layout,undefined,'Historic page layout is not overwritten');
+ assert.ok(history[0].data.songs[0].form.some(f=>f.type==='Cx2'));assert.ok(history[0].data.songs[0].form.some(f=>f.type==='Bridge x 2'));
  const migrated=await call('drum',`services/${service.id}/personal/song-1?version=2`);assert.equal(migrated.reviewed,false);assert.equal(migrated.notes.length,1);assert.equal(migrated.basedVersion,1);
  await call('drum',`services/${service.id}/confirm`,'POST',{version:1},409);
  // Library cleanup preserves published snapshots and enforces owner-only revisions.
@@ -85,7 +86,7 @@ try{
  const copiedService=await call('owner','services','POST',copied);
  const fixedUpdate=structuredClone(catalog[0].data);fixedUpdate.form=[{id:'new-form',type:'Outro'}];
  await call('owner','fixed-songs/'+fs.id,'PUT',{song:fixedUpdate,revision:1,autoAdd:true});
- const weeks=await call('owner','services');assert.equal(weeks.find(s=>s.id===copiedService.id).data.songs[0].form.length,10);assert.equal(weeks.find(s=>s.id===service.id).data.songs[0].form.length,10);
+ const weeks=await call('owner','services');assert.equal(weeks.find(s=>s.id===copiedService.id).data.songs[0].form.length,12);assert.equal(weeks.find(s=>s.id===service.id).data.songs[0].form.length,12);
  await call('owner','fixed-songs/'+fs.id,'PATCH',{revision:1,autoAdd:false},409);
  await call('owner','fixed-songs/'+fs.id,'PATCH',{revision:2,autoAdd:false});
  assert.equal((await call('owner','fixed-songs'))[0].autoAdd,false);

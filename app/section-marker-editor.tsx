@@ -2,11 +2,12 @@
 import {useEffect,useState} from 'react';
 import {MapPin,Trash2,X} from 'lucide-react';
 import {Slider} from '@/components/ui/slider';
-import {SECTIONS,type Song,type ScorePage,type SectionMarker} from '@/lib/types';
+import {SECTIONS as FORM_SECTIONS,type Song,type ScorePage,type SectionMarker} from '@/lib/types';
 import {sectionMarkerText} from '@/lib/client';
 import {Picker} from './ui';
 import ScorePreview from './score-preview';
 
+const SECTIONS=FORM_SECTIONS.filter(s=>s!=='Cx2'&&s!=='Bridge x 2');
 export default function SectionMarkerEditor({page,song,onChange,meta,disabled=false}:{page?:ScorePage;song:Song;onChange:(patch:Partial<Song>)=>void;meta:string;disabled?:boolean}){
  const [placing,setPlacing]=useState<SectionMarker['type']|null>(null),[selected,setSelected]=useState('');
  useEffect(()=>{setPlacing(null);setSelected('');},[page?.id]);
@@ -15,7 +16,7 @@ export default function SectionMarkerEditor({page,song,onChange,meta,disabled=fa
  const add=(x:number,y:number)=>{if(!page||!placing||markers.length>=200)return;const id=crypto.randomUUID();onChange({markers:[...markers,{id,pageId:page.id,type:placing,x,y,size:.018}]});setSelected(id);setPlacing(null);};
  return <><fieldset className="section-marker-tools" disabled={disabled||!page}>
   <div className="row spread"><h3><MapPin size={17}/>악보 위 구간 표시</h3><span className="marker-count">이 페이지 {visible.length}개</span></div>
-  <p>구간을 고른 뒤 오선 위의 빈 곳을 누르세요. 표시를 선택하면 그 표시의 위치와 크기만 바뀝니다.</p>
+  <p>구간을 고른 뒤 오선 위의 빈 곳을 누르세요. 표시를 선택하면 그 표시만 조절됩니다. 빈 곳을 누르면 선택이 풀려 악보를 스크롤할 수 있습니다.</p>
   <div className="marker-type-buttons">{SECTIONS.map(type=><button type="button" key={type} aria-pressed={placing===type} className={placing===type?'active':''} disabled={markers.length>=200} onClick={()=>{setPlacing(placing===type?null:type);setSelected('');}}>{type==='V'?'V · Verse':type==='V1'?'V1 · 1절':type==='V2'?'V2 · 2절':type==='C'?'C · Chorus':type}</button>)}</div>
   {placing&&<div className="marker-placement" role="status"><MapPin size={16}/><span><strong>{sectionMarkerText(placing)}</strong> 표시할 위치를 악보에서 눌러 주세요.</span><button type="button" aria-label="구간 배치 취소" onClick={()=>setPlacing(null)}><X size={18}/></button></div>}
   {visible.length>0&&<div className="marker-list" aria-label="이 페이지의 구간 표시">{[...visible].sort((a,b)=>a.y-b.y).map((m,i)=><button type="button" key={m.id} aria-pressed={selected===m.id} className={selected===m.id?'selected':''} onClick={()=>{setSelected(m.id);setPlacing(null);}}>{sectionMarkerText(m.type)}<small>{i+1}</small></button>)}</div>}

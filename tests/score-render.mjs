@@ -44,3 +44,12 @@ writeFileSync('.sites-runtime/qa/score-sections.png',mc.toBuffer('image/png'));
 writeFileSync('.sites-runtime/qa/score-inline.png',ic.toBuffer('image/png'));
 writeFileSync('.sites-runtime/qa/score-uniform.png',uc.toBuffer('image/png'));
 console.log('PASS: matching dimensions at equal sizes, independently resized marker, isolated page layout, inline marker width, two-dimensional placement, compact border, common section labels, per-page filtering, left and top margins preserve personal cue alignment, six-section song form, PNG output dimensions, private cue rendering, margin-stable coordinates, long-note wrapping.');
+
+const repeatSong={...uniformSong,form:['Intro','V1','Cx2','Bridge x 2','Outro'].map((type,i)=>({id:'repeat-'+i,type}))};
+const repeatCanvas=createCanvas(1,1),repeatGeo=await renderScore(repeatCanvas,page,repeatSong);
+assert.deepEqual(repeatGeo.markerBoxes,ug.markerBoxes,'Adding repeated form labels must not resize or move section markers');
+assert.equal(repeatGeo.overflow,false);
+const repeatWrap=await renderScore(createCanvas(1,1),{...page,layout:{...repeatSong.layout,width:.22,margin:true}},repeatSong);
+assert.ok(repeatWrap.offset>0);assert.equal(repeatWrap.overflow,false);
+writeFileSync('.sites-runtime/qa/score-repeats.png',repeatCanvas.toBuffer('image/png'));
+console.log('PASS: Cx2 and Bridge x 2 render with unchanged section-box geometry');
