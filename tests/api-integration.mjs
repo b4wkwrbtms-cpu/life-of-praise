@@ -2,6 +2,7 @@ import {createRequire} from 'node:module';
 import {dirname,resolve} from 'node:path';
 import {readFileSync,readdirSync} from 'node:fs';
 import assert from 'node:assert/strict';
+import {librarySongs,importLibrarySongs} from '../lib/song-library.ts';
 const require=createRequire(import.meta.url);
 const {Miniflare}=await import(require.resolve('miniflare',{paths:[dirname(require.resolve('wrangler/package.json'))]}));
 const root=resolve('dist/server');const paths=readdirSync(root,{recursive:true}).filter(p=>p.endsWith('.js')||p.endsWith('.mjs'));paths.sort((a,b)=>a==='index.js'?-1:b==='index.js'?1:a.localeCompare(b));const modules=paths.map(p=>({type:'ESModule',path:resolve(root,p)}));
@@ -110,6 +111,28 @@ try{
  await call('owner','fixed-songs/'+fixedB.id,'DELETE',{revision:1});
  console.log('PASS: multi-song fixed catalog, no automatic additions, independent updates, 20% form and 10% marker size persistence');
 
+
+ // Import individual archived songs through the same editor save endpoint.
+ const archiveBefore=await call('owner','services');
+ const choices=librarySongs(archiveBefore,blankService.id);
+ const chosen=choices.find(e=>e.serviceId===service.id&&e.kind==='complete');
+ assert.ok(chosen);
+ const imported=importLibrarySongs([], [chosen]);
+ const selectedWeek={...blank,songs:imported};
+ await call('drum',`services/${blankService.id}`,'PUT',{revision:1,data:selectedWeek},404);
+ await call('owner',`services/${blankService.id}`,'PUT',{revision:1,data:selectedWeek});
+ let importedReload=(await call('owner','services')).find(s=>s.id===blankService.id);
+ assert.deepEqual(importedReload.draft.songs[0].librarySource,imported[0].librarySource);
+ assert.deepEqual(importedReload.draft.songs[0].pages,chosen.song.pages);
+ assert.deepEqual(importedReload.draft.songs[0].markers,imported[0].markers);
+ assert.deepEqual(importedReload.draft.songs[0].exports,[]);
+ assert.deepEqual(importLibrarySongs(importedReload.draft.songs,[chosen]),[],'Saved source metadata prevents duplicate imports after reload');
+ selectedWeek.songs[0].title='이번 주에만 변경';selectedWeek.songs[0].markers[0].y=.4;
+ await call('owner',`services/${blankService.id}`,'PUT',{revision:2,data:selectedWeek});
+ const archiveAfter=await call('owner','services');
+ assert.deepEqual(archiveAfter.find(s=>s.id===service.id).data,archiveBefore.find(s=>s.id===service.id).data,'Original completed service remains unchanged');
+ assert.equal(archiveAfter.find(s=>s.id===blankService.id).draft.songs[0].markers[0].y,.4);
+ console.log('PASS: library song imports persist with original scores, annotations and source metadata; private drafts and source isolation remain intact');
 
  // Permanent deletion is restricted to revision-matched trash and removes its
  // dependent records, while score files reused elsewhere remain intact.
