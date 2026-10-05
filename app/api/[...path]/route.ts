@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {appSetupApi} from '@/lib/app-setup';
 import {accountApi,teamApi} from '@/lib/church-api';
 import {platformApi} from '@/lib/platform-api';
 import {developerApi} from '@/lib/developer-requests';
@@ -14,6 +15,7 @@ const user=await identity();
 const platformResponse=await platformApi(req,path,user,()=>read(req));if(platformResponse)return platformResponse;
 const accountResponse=await accountApi(req,path,user,()=>read(req));if(accountResponse)return accountResponse;
 const p=await member(req);
+if(path[0]==='app-setup'&&path.length===1)return await appSetupApi(req,p,()=>read(req));
 if(path[0]==='developer-requests')return await developerApi(req,path,p,()=>read(req));
 if(path[0]==='team')return await teamApi(req,p,()=>read(req));
 if(path[0]==='invite'&&method==='POST'){admin(p);const code=crypto.randomUUID().replaceAll('-','');const result=await db().prepare('UPDATE churches SET invite_hash=? WHERE id=? AND deleted_at IS NULL').bind(await digest(code),p.churchId).run();if(!result.meta.changes)fail(403,'삭제한 교회에는 초대 코드를 발급할 수 없습니다.');return json({code,churchId:p.churchId});}

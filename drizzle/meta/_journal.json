@@ -36,6 +36,13 @@
       "when": 1791195213170,
       "tag": "0004_true_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791198819660,
+      "tag": "0005_lucky_shard",
+      "breakpoints": true
     }
   ]
 }

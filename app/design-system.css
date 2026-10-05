@@ -127,6 +127,47 @@ textarea {padding:12px}
 .support-icon {display:grid;place-items:center;width:34px;height:34px;flex-shrink:0;background:#fff;border-radius:10px;color:var(--primary)}
 .support-link:hover,.support-link[aria-current=page] {background:#e2ece4;border-color:#b9cdbf}
 .support-link:focus-visible {outline:2px solid var(--ring);outline-offset:3px}
+.app-guide-dialog[data-slot=dialog-content] {width:min(480px,calc(100vw - 24px))!important;max-width:480px!important;max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:0!important;display:flex!important;flex-direction:column;gap:0;overflow:hidden;background:#fff}
+.guide-header {display:flex;align-items:center;gap:12px;flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--border)}
+.guide-header>span:nth-child(2) {margin-left:auto;font-size:var(--type-label);color:var(--muted-foreground)}
+.guide-header .icon-button {width:36px;min-width:36px;height:36px}
+.guide-body {min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:20px;-webkit-overflow-scrolling:touch}
+.guide-copy [data-slot=dialog-title] {font-size:var(--type-section);line-height:1.45;margin-bottom:10px}
+.guide-copy [data-slot=dialog-description] {font-size:var(--type-body);line-height:1.7;color:var(--muted-foreground)}
+.guide-image {display:block;width:100%;height:auto;margin-top:20px;border-radius:14px;touch-action:pan-y}
+.guide-footer {flex-shrink:0;padding:10px 20px 16px;border-top:1px solid var(--border);background:#fff}
+.guide-pages {display:flex;justify-content:center;gap:4px;margin-bottom:8px}
+.guide-pages button {width:36px;height:28px;display:grid;place-items:center;border-radius:8px}
+.guide-pages span {display:block;width:7px;height:7px;border-radius:8px;background:#d4ddd6}
+.guide-pages [aria-current=step] span {width:22px;background:var(--primary)}
+.guide-pages button:focus-visible {outline:2px solid var(--ring)}
+.guide-navigation {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.guide-footer small {display:block;text-align:center;margin-top:10px;color:var(--muted-foreground)}
+.install-instructions {margin-top:16px}
+.install-platforms {display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.install-platforms button {font-size:var(--type-label);line-height:1.5;padding:9px 12px;border:1px solid var(--border);border-radius:10px;min-height:42px}
+.install-platforms [aria-pressed=true] {color:var(--primary);background:#e8f1e9;border-color:#aec6b5;font-weight:600}
+.install-instructions ol {list-style:decimal;padding-left:24px;margin:16px 0}
+.install-instructions li {padding-left:4px;margin:12px 0;font-size:var(--type-body);line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+.install-instructions li svg {display:inline;vertical-align:middle;margin-right:4px}
+.install-instructions>.full {margin-top:10px}
+.installation-confirmed,.install-browser-note {background:#edf4ee;color:var(--primary);padding:14px;border-radius:12px;font-size:var(--type-label);line-height:1.7}
+.installation-confirmed svg {display:inline;vertical-align:middle;margin-right:8px}
+.install-disclosure {font-size:var(--type-caption);color:var(--muted-foreground);line-height:1.7;margin-top:14px}
+.guide-entry-actions {display:flex;gap:10px;flex-wrap:wrap}
+.guide-entry-actions button {flex:1}
+.team-install-summary {display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px;margin-top:20px;font-size:var(--type-label)}
+.team-install-summary .text-button {margin-left:auto}
+.member-install-status {display:grid;gap:8px;margin-top:10px}
+.install-badge {display:inline-block;font-size:var(--type-caption);line-height:1.6;padding:4px 8px;border-radius:6px;color:var(--muted-foreground);background:#f0f3ef}
+.install-badge.confirmed {background:#e4f0e7;color:#315d48}
+.member-install-status small {font-size:var(--type-caption);margin-top:3px}
+@media(max-width:380px) {
+ .guide-body {padding:16px}
+ .guide-header {padding:10px 12px}
+ .guide-footer {padding:8px 16px 12px}
+ .guide-footer small {font-size:12px}
+}
 @media(max-width:600px) {
   .workspace-support {grid-template-columns:minmax(0,1fr);gap:10px;margin-top:28px;padding-top:20px}
 }

@@ -11,6 +11,7 @@ import {api,copyText,setChurchContext} from '@/lib/client';
 import {POSITIONS,MUSICIAN_POSITIONS,newWorship,nextSunday,nextCopyDate,selectCurrentService,dateLabel,formText,type Profile,type Service,type Song} from '@/lib/types';
 import {Field,Picker,Mark,Busy} from './ui';
 import WorshipEditor from './worship-editor';
+import AppGuide from './app-guide';
 import ScoreStudio from './score-studio';
 import Comments from './comments';
 import LibraryPanel from './library-panel';
@@ -26,6 +27,8 @@ export default function PraiseApp({signedIn,signInPath}:{signedIn:boolean;signIn
  const [reader,setReader]=useState<{service:Service;startSongId?:string}|null>(null),[share,setShare]=useState<Service|null>(null);
  const [online,setOnline]=useState(true),[refreshing,setRefreshing]=useState(false),[invite,setInvite]=useState('');
  const [questionSong,setQuestionSong]=useState('');
+ const [guideRequest,setGuideRequest]=useState<{id:number;install:boolean}|null>(null);
+ const showGuide=(install=false)=>setGuideRequest(r=>({id:(r?.id||0)+1,install}));
  const profile:Profile|null=me?.profile;const admin=profile?.role==='admin';
  const loadTicket=useRef(0);
  const [joiningInvitation,setJoiningInvitation]=useState(false);
@@ -56,7 +59,7 @@ export default function PraiseApp({signedIn,signInPath}:{signedIn:boolean;signIn
  {tab==='fixed'&&admin&&<FixedSongs onChoose={()=>setTab('library')}/>}
  {tab==='library'&&<LibraryPanel services={services} admin={admin} reload={load} onRead={(service,startSongId)=>setReader({service,startSongId})} onShare={setShare} onEdit={setEdit} onCopy={create} onHistory={async s=>{try{setHistoryService(s);setVersions(await api(`services/${s.id}/versions`));}catch(e){toast.error((e as Error).message);}}}/>}
  {tab==='community'&&<><div className="page-heading"><div><span className="eyebrow">TEAM CONVERSATION</span><h1>함께 나누기</h1><p>질문하고, 답하고, 같은 마음으로 준비해요.</p></div></div>{current?.published?<><Picker label="예배 선택" value={current.id} onChange={setSelected} options={services.filter(s=>s.published).map(s=>({value:s.id,label:s.date+' · '+s.title}))}/><Comments key={current.id+questionSong} initialSongId={questionSong} service={current} profile={profile} onPromote={c=>{const d=structuredClone(current.draft||current.data);const song=d.songs.find(s=>s.id===c.song_id);if(song)song.notes+=(song.notes?'\n':'')+c.text;else d.notice+=(d.notice?'\n':'')+c.text;setEdit({...current,draft:d,pendingEdit:true});}}/></>:<Empty icon={MessageCircle} title="자료가 공개되면 대화가 시작됩니다" text="곡별 질문과 본문에 대한 나눔을 함께 남겨 주세요."/>}</>}
- {tab==='profile'&&<ProfilePanel key={me.church.id} profile={profile} me={me} reload={load} onSwitch={switchChurch} onNavigate={setTab}/>}
+ {tab==='profile'&&<ProfilePanel key={me.church.id} profile={profile} me={me} reload={load} onSwitch={switchChurch} onNavigate={setTab} onGuide={showGuide}/>}
  {tab==='admin'&&me.superAdmin&&<PlatformConsole profile={profile} onSwitch={switchChurch} onChurchChanged={churchChanged}/>}
  {tab==='requests'&&<DeveloperRequests key={me.church.id} profile={profile}/>}
  <footer className="workspace-support" aria-label="도움 및 교회 관리">
@@ -64,6 +67,7 @@ export default function PraiseApp({signedIn,signInPath}:{signedIn:boolean;signIn
   <button className="support-link" aria-current={tab===(me.superAdmin?'admin':'profile')?'page':undefined} onClick={()=>{setTab(me.superAdmin?'admin':'profile');window.scrollTo({top:0,behavior:'instant'});}}><span className="support-icon"><Building2 size={19} aria-hidden="true"/></span><span>{me.superAdmin?'전체 교회 관리':'교회 전환 · 관리'}</span></button>
  </footer>
  </main>}</Tabs>
+ <AppGuide profile={signedIn&&!loading&&!joiningInvitation?profile:null} request={guideRequest}/>
  {reader&&<RehearsalReader service={reader.service} startSongId={reader.startSongId} onClose={()=>setReader(null)}/>}
  {share&&<ShareWeek service={share} onClose={()=>setShare(null)}/>}
  {edit&&profile&&<WorshipEditor key={edit.id} service={edit} onClose={()=>{setEdit(null);load();}} onPublished={()=>{setEdit(null);setTab('week');load();}}/>}
@@ -72,12 +76,12 @@ export default function PraiseApp({signedIn,signInPath}:{signedIn:boolean;signIn
  </>;
 }
 function Empty({icon:Icon,title,text,action}:{icon:any;title:string;text:string;action?:React.ReactNode}){return <div className="empty-state"><span className="empty-icon"><Icon size={34} strokeWidth={1.3}/></span><h2>{title}</h2><p>{text}</p>{action}</div>}
-function ProfilePanel({profile,me,reload,onSwitch,onNavigate}:{profile:Profile;me:any;reload:()=>Promise<void>;onSwitch:(id:string)=>Promise<void>;onNavigate:(view:string)=>void}){
+function ProfilePanel({profile,me,reload,onSwitch,onNavigate,onGuide}:{profile:Profile;me:any;reload:()=>Promise<void>;onSwitch:(id:string)=>Promise<void>;onNavigate:(view:string)=>void;onGuide:(install?:boolean)=>void}){
  const [name,setName]=useState(profile.name),[pos,setPos]=useState<string>(profile.role!=='admin'&&profile.position==='인도자'?'성도':profile.position),[busy,setBusy]=useState(false);
  return <><div className="page-heading"><div><span className="eyebrow">MY WORSHIP PROFILE</span><h1>나의 찬양 자리</h1><p>{me.church.name}</p></div></div>
  {me.superAdmin&&<section className="panel admin-entry"><div><h2>총관리자 운영실</h2><p>교회 목록 · 인도자 초대 · 개설 승인 · 개발 요청</p></div><button className="primary" onClick={()=>onNavigate('admin')}>전체 교회 관리</button></section>}
  <div className="profile-grid"><section className="panel profile-card"><span className="avatar big">{profile.name[0]}</span><h2>{profile.name} <span className="pill">{me.superAdmin?'총관리자':profile.role==='admin'?'인도자':'팀원'}</span></h2><p className="subtle">{me.email}</p><Field label="이름"><input value={name} onChange={e=>setName(e.target.value)} maxLength={40}/></Field><Field label="역할 / 담당 세션"><Picker value={pos} onChange={setPos} label="역할 또는 세션" options={POSITIONS.filter(p=>profile.role==='admin'||p!=='인도자').map(p=>({value:p,label:p}))}/></Field><button className="primary full" disabled={busy||!name.trim()} onClick={async()=>{setBusy(true);try{await api('me','POST',{name,position:pos});await reload();toast.success('프로필을 저장했습니다.')}catch(e){toast.error((e as Error).message)}finally{setBusy(false)}}}>프로필 저장</button><a className="text-button logout" href="/signout-with-chatgpt?return_to=/" target="_top"><LogOut size={16}/>로그아웃</a></section>
  <div className="church-management-column"><section className="panel small-panel developer-entry"><h2>개발자에게 부탁해요</h2><p>우리 교회에 필요한 기능이나 불편한 점을 남기고 진행 상황을 확인하세요.</p><button className="secondary" onClick={()=>onNavigate('requests')}>우리 교회 개발 요청 보기</button></section>
  {!me.superAdmin&&<ChurchManager me={me} reload={reload} onSwitch={onSwitch}/>}
- {profile.role==='admin'&&<ChurchTeam profile={profile} church={me.church} reload={reload}/>}<section className="panel small-panel install-panel"><h3>홈 화면에 추가하기</h3><p>아이폰은 Safari의 공유 버튼 → ‘홈 화면에 추가’, 안드로이드는 브라우저 메뉴 → ‘홈 화면에 추가’를 선택하세요.</p></section></div></div></>;
+ {profile.role==='admin'&&<ChurchTeam profile={profile} church={me.church} reload={reload}/>}<section className="panel small-panel install-panel"><h3>앱 소개 · 설치 안내</h3><p>{profile.role==='admin'?'인도자':'찬양팀'}를 위한 5장 안내와 기기에 맞는 설치 방법을 확인하세요.</p><div className="guide-entry-actions"><button className="secondary" onClick={()=>onGuide(false)}>앱 소개 다시 보기</button><button className="primary" onClick={()=>onGuide(true)}>설치 안내 보기</button></div></section></div></div></>;
 }
