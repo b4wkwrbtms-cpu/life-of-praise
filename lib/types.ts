@@ -1,5 +1,5 @@
 export const MUSICIAN_POSITIONS = ['드럼','건반','베이스','싱어','일렉','세컨'] as const;
-export const POSITIONS = [...MUSICIAN_POSITIONS,'성도','교역자'] as const;
+export const POSITIONS = [...MUSICIAN_POSITIONS,'성도','교역자','인도자'] as const;
 export const SECTIONS = ['Intro','V','V1','V2','PC','C','Cx2','Inter','Bridge','Bridge x 2','Outro'] as const;
 export type Position = typeof POSITIONS[number];
 export type Section = { id: string; type: typeof SECTIONS[number] };
@@ -11,7 +11,8 @@ export type Song = { librarySource?:LibrarySource; fixedId?:string; id:string; t
 export type Worship = { title:string; date:string; passage:string; translation:string; scripture:string; theme:string; rehearsal:string; notice:string; songs:Song[] };
 export type FixedSong = {id:string;title:string;data:Song;revision:number;autoAdd:boolean;updated:number};
 export type Service = { pendingEdit?:boolean; deleted?:boolean; hasDraft?:boolean; id:string; date:string; title:string; data:Worship; version:number; revision:number; published:boolean; finalized:boolean; updated:number; changes:string[]; draft?:Worship; seen:number };
-export type Profile = { id:string; name:string; position:Position; role:'admin'|'member'; active:number };
+export type Profile = { id:string; name:string; position:Position; role:'admin'|'member'; active:number; churchId?:string; superAdmin?:boolean; leaderRequested?:number };
+export type Church = {id:string;name:string;active:number;role?:'admin'|'member';leaderRequested?:number;memberCount?:number;serviceCount?:number;leaders?:string};
 export type Note = { id:string; pageId:string; x:number; y:number; text:string; size:number; color:string; sectionId?:string };
 export type Personal = { notes:Note[]; basedVersion:number; reviewed:boolean; revision:number; exports:string[] };
 export type Comment = { id:string; service_id:string; song_id:string; user_id:string; name:string; position:string; text:string; parent_id:string; attachment:string; resolved:number; pinned:number; version:number; created:number };

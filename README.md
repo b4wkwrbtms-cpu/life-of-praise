@@ -1,6 +1,6 @@
 # 생명의 찬양
 
-A Korean worship-team workspace. Sign in using platform-owned ChatGPT authentication, then set a name and one of six musician positions or the congregation/ministry roles (성도, 교역자). Role labels never grant administrative permissions. Only the configured owner account can register and publish official worship plans. Team members require an invitation code plus the Site audience's viewing permission.
+A Korean worship-team workspace with separate church spaces. Sign in using platform-owned ChatGPT authentication, then create a church as its leader or join an existing church with an invitation. Selecting 인도자 in an existing church requests approval; it never grants permissions by itself. The configured owner is the platform-wide administrator, while approved leaders manage only their own churches.
 
 ## Product
 
@@ -17,7 +17,7 @@ A Korean worship-team workspace. Sign in using platform-owned ChatGPT authentica
 
 ## Runtime
 
-Logical bindings: D1 `DB`, R2 `BUCKET`. Runtime secret: `OWNER_EMAIL` (configured through Sites). The stable forwarded user ID owns records; the owner email is used only to authorize first profile creation. Source contains no production secret or owner address.
+Logical bindings: D1 `DB`, R2 `BUCKET`. Runtime secret: `OWNER_EMAIL` (configured through Sites) identifies the platform-wide administrator. The stable forwarded user ID owns records and memberships. Source contains no production secret or owner address.
 
 `db/schema.ts` and committed Drizzle migrations own the schema. Do not mutate schema during requests. Publishing uses immutable versions and optimistic revision checks. Personal annotations are versioned and scoped to the authenticated user; source replacements require review instead of silently reattaching markers.
 
@@ -25,11 +25,22 @@ Logical bindings: D1 `DB`, R2 `BUCKET`. Runtime secret: `OWNER_EMAIL` (configure
 
 Use the Sites build workflow, then `node tests/api-integration.mjs` and `node tests/score-render.mjs`. Integration tests run against an isolated in-memory Miniflare instance with synthetic identities. They never touch production or the user's plans. Canvas tests use a generated staff fixture; no copyrighted score is bundled.
 
+`node tests/church-isolation.mjs` starts with populated pre-migration tables, applies the church migration, and checks scoped roles, leader approval, cross-church IDs/files, private attachments, invitations, revoked membership, last-leader protection, suspension, and platform-owner access.
+
 `pnpm exec tsc --noEmit` validates types. `pnpm run db:generate` generates migrations for deliberate schema changes. The app uses the existing Sites managed preview and publication scripts.
 
 ## Access
 
-A new Site is owner-private. The owner must use Site sharing to authorize team viewers; application invitation codes then permit those signed-in users to join the team. Application invitations cannot override Site-level access. No app-owned passwords are stored.
+Site audience and application memberships are separate gates. The current Site audience is retained during updates; application invitations cannot override a restricted Site audience. No app-owned passwords are stored.
+
+## Church spaces
+
+- Logical tenant isolation uses shared D1/R2 infrastructure. Each church has its own leaders, memberships, invitations, worship plans, fixed-song catalog and files. Versions, discussions, personal cues and trash are checked through the owning service's church.
+- The default church is `uelin`, displayed as **유엘인교회 찬양팀**. Schema defaults retain existing files, services and fixed songs. An idempotent data-only migration copies existing profiles into this church's memberships and preserves the old invitation. New accounts have no legacy membership.
+- Creating a church explicitly as 인도자 grants leadership in that new church only. Existing-church leader requests need approval by a church leader or the platform administrator. Membership roles and positions are separate for each church; disabling membership affects only that church. The final active leader cannot be removed.
+- The platform administrator can switch to any church, rename it, approve its leaders, and suspend/reopen its operation while preserving records. The default church cannot be suspended.
+- Every resource API derives membership from authenticated identity and the selected church. Client headers, the selection cookie and file query parameters select context but never confer access. Immutable score URLs include church context so separate tabs remain independent.
+- 내 정보 contains church creation/joining/switching, leader approval and invitations; the platform owner sees 전체 교회 관리 with leaders and counts.
 
 ## Preparation and rehearsal refinements
 

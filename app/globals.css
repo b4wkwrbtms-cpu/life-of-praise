@@ -116,6 +116,21 @@
  .library-import-footer .primary{flex:1;justify-content:center}
 }
 @media(max-height:500px){.library-song-picker[data-slot=dialog-content]{gap:6px;padding:12px 16px}.library-song-picker>[data-slot=dialog-description],.library-import-footer>small{display:none}.library-import-footer{padding-top:6px}.library-import-card{padding:10px}.library-import-card p{margin:2px 0}}
+.church-context{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px max(20px,calc((100vw - 1300px)/2));border-bottom:1px solid #dbe3d3;background:#f0f5eb;min-width:0}
+.church-context>div{display:flex;gap:10px;align-items:center;min-width:0}
+.church-context strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.church-context span{font-size:12px;color:#6a7c5b;white-space:nowrap}
+.church-context .text-button{font-size:13px;min-height:36px}
+.church-setup h1{margin:20px 0 12px}.church-mode-tabs{width:100%;display:flex;height:auto;margin:16px 0}.church-mode-tabs [data-slot=tabs-trigger]{flex:1;white-space:normal;min-height:42px;font-size:14px}
+.church-role-note{display:flex;gap:10px;background:#f0f5eb;border:1px solid #dce6d4;padding:14px;border-radius:10px;margin-bottom:18px;font-size:14px;line-height:1.7;color:#4c6840}.church-role-note svg{flex-shrink:0;margin-top:3px}.church-role-note span{font-size:12px}
+.church-existing{display:flex;flex-direction:column;gap:8px;margin:20px 0}.church-existing strong{font-size:14px}
+.brand small{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.church-management-column{display:flex;flex-direction:column;gap:20px;min-width:0}
+.church-manager,.church-team{padding:24px;min-width:0}.church-manager h2,.church-team h2{display:flex;align-items:center;gap:8px;font-size:19px;margin-bottom:10px}.church-manager p,.church-team p{font-size:14px;line-height:1.7;color:#738068}.church-manager>.row{align-items:flex-start}
+.church-manager-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.church-manager-actions button,.church-team>.secondary{font-size:14px;min-height:42px}.church-team>.secondary{margin:0 8px 12px 0}
+.church-inline-form{background:#f7f9f4;border:1px solid #dce5d5;padding:16px;border-radius:10px;margin-bottom:16px}.church-inline-form small{display:block;font-size:13px;line-height:1.7;margin:0 0 12px}.church-inline-form select{width:100%;font-size:16px;min-height:42px;border:1px solid #dce5d5;border-radius:8px;padding:8px;background:#fff}
+.church-list,.church-member-list{display:flex;flex-direction:column;gap:10px;min-width:0}.church-list article,.church-member-list article{display:flex;align-items:center;gap:12px;padding:14px 12px;border:1px solid #dce4d4;border-radius:10px;min-width:0}.church-list article.selected{background:#f2f6ee;border-color:#8da87d}.church-list article>div:first-child,.church-member-list article>div:first-child{min-width:0;flex:1}.church-list strong,.church-member-list strong{display:block;font-size:15px;overflow-wrap:anywhere}.church-list small,.church-member-list small{display:block;font-size:12px;line-height:1.7;color:#738366;margin-top:3px}.church-card-actions,.church-member-list article>div:last-child{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.church-card-actions button,.church-member-list button{font-size:13px;min-height:36px}.church-member-list{margin-top:18px}
+@media(max-width:600px){.church-context{padding:6px 14px;gap:6px}.church-context>div{display:block}.church-context span{display:block}.church-context .text-button{font-size:12px}.church-manager,.church-team{padding:18px 14px}.church-list article,.church-member-list article{flex-wrap:wrap}.church-list article>div:first-child,.church-member-list article>div:first-child{flex-basis:100%}.church-card-actions,.church-member-list article>div:last-child{width:100%;justify-content:flex-end}.church-setup .position-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.church-setup .position-grid label{font-size:14px}.church-manager>.row{flex-wrap:wrap}}
 .fixed-library{min-width:0}
 .fixed-library-intro{display:flex;gap:14px;align-items:flex-start;padding:20px;border:1px solid #dbe4d1;background:#f0f5eb;border-radius:12px;margin-bottom:20px;color:#315d48;font-size:15px;line-height:1.7}
 .fixed-library-intro>svg{flex-shrink:0;margin-top:3px}

@@ -3,7 +3,7 @@ import type {Worship} from './types';
 
 // The copied score can belong to many weeks or fixed songs. Remove only files
 // whose last saved reference disappeared, including references in the trash.
-const unusedFile=`DELETE FROM files WHERE id=?
+const unusedFile=`DELETE FROM files WHERE id=? AND church_id=?
  AND NOT EXISTS (SELECT 1 FROM services s,json_tree(s.draft) j WHERE j.type='text' AND j.atom=files.id)
  AND NOT EXISTS (SELECT 1 FROM services s,json_tree(s.published) j WHERE j.type='text' AND j.atom=files.id)
  AND NOT EXISTS (SELECT 1 FROM versions v,json_tree(v.data) j WHERE j.type='text' AND j.atom=files.id)
@@ -11,9 +11,9 @@ const unusedFile=`DELETE FROM files WHERE id=?
  AND NOT EXISTS (SELECT 1 FROM personal p,json_tree(p.data) j WHERE j.type='text' AND j.atom=files.id)
  AND NOT EXISTS (SELECT 1 FROM comments c WHERE c.attachment=files.id)`;
 
-export async function purgeService(id:string,revision:number){
+export async function purgeService(id:string,revision:number,churchId:string){
  const database=db();
- const row=await database.prepare('SELECT draft,published,deleted,revision FROM services WHERE id=?').bind(id).first<{draft:string;published:string|null;deleted:number;revision:number}>();
+ const row=await database.prepare('SELECT draft,published,deleted,revision FROM services WHERE id=? AND church_id=?').bind(id,churchId).first<{draft:string;published:string|null;deleted:number;revision:number}>();
  if(!row)fail(404,'이미 삭제되었거나 찾을 수 없는 예배입니다.');
  if(!row!.deleted)fail(400,'휴지통에 있는 예배만 영구 삭제할 수 있습니다.');
  if(row!.revision!==revision)fail(409,'예배가 변경되었습니다. 휴지통을 새로고침해 주세요.');
@@ -39,7 +39,7 @@ export async function purgeService(id:string,revision:number){
  for(let i=0;i<candidates.length;i+=30){
   const chunk=candidates.slice(i,i+30);
   try{
-   const removed=await database.batch(chunk.map(fid=>database.prepare(unusedFile).bind(fid)));
+   const removed=await database.batch(chunk.map(fid=>database.prepare(unusedFile).bind(fid,churchId)));
    const keys=chunk.filter((_,n)=>removed[n].meta.changes>0);
    if(keys.length)await bindings().BUCKET.delete(keys);
   }catch(error){console.error('Unused score-file cleanup failed after worship deletion',error)}
