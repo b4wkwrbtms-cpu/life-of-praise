@@ -95,6 +95,21 @@ try{
  assert.equal((await call('owner','fixed-songs')).length,0);
  assert.equal((await call('drum',`services/${service.id}/versions`)).length,2);
  console.log('PASS: library soft delete, restoration, draft discard, stale-write protection, fixed-song catalog isolation and permissions.');
+ // Multiple independent saved songs, manual defaults, and larger per-page form sizes.
+ const larger=structuredClone(v2.songs[0]);larger.pages[0].layout.size=.2;larger.markers[0].size=.1;
+ const fixedA=await call('owner','fixed-songs','POST',{song:larger});
+ const fixedB=await call('owner','fixed-songs','POST',{song:{...larger,title:'또 다른 고정찬양'}});
+ const multiple=await call('owner','fixed-songs');assert.equal(multiple.length,2);assert.ok(multiple.every(f=>f.autoAdd===false));
+ assert.equal(multiple.find(f=>f.id===fixedA.id).data.pages[0].layout.size,.2);
+ assert.equal(multiple.find(f=>f.id===fixedA.id).data.markers[0].size,.1);
+ const blank={...worship,songs:[]};const blankService=await call('owner','services','POST',blank);
+ assert.equal((await call('owner','services')).find(s=>s.id===blankService.id).data.songs.length,0);
+ await call('owner','fixed-songs/'+fixedA.id,'PUT',{song:{...larger,title:'하나만 갱신'},revision:1});
+ assert.equal((await call('owner','fixed-songs')).find(f=>f.id===fixedB.id).title,'또 다른 고정찬양');
+ await call('owner','fixed-songs/'+fixedA.id,'DELETE',{revision:2});
+ await call('owner','fixed-songs/'+fixedB.id,'DELETE',{revision:1});
+ console.log('PASS: multi-song fixed catalog, no automatic additions, independent updates, 20% form and 10% marker size persistence');
+
 
  // Permanent deletion is restricted to revision-matched trash and removes its
  // dependent records, while score files reused elsewhere remain intact.

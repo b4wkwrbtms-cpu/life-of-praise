@@ -36,7 +36,7 @@ if(path[0]==='fixed-songs'){
  admin(p);
  if(path.length===1&&method==='GET'){const r=await db().prepare('SELECT * FROM fixed_songs ORDER BY updated ASC,id ASC').all<any>();return json(r.results.map(f=>({id:f.id,title:f.title,data:JSON.parse(f.data),revision:f.revision,autoAdd:!!f.auto_add,updated:f.updated})));}
  if((path.length===1&&method==='POST')||(path[1]&&method==='PUT')){
- const v=z.object({song:songSchema,revision:z.number().int().optional(),autoAdd:z.boolean().default(true)}).parse(await read(req));const song=v.song;
+ const v=z.object({song:songSchema,revision:z.number().int().optional(),autoAdd:z.boolean().default(false)}).parse(await read(req));const song=v.song;
  if(!song.title.trim()||!song.pages.length||!song.form.length)fail(400,'고정찬양은 제목·악보·송폼을 먼저 입력해 주세요.');
  if((song.markers||[]).some(m=>!song.pages.some(p=>p.id===m.pageId)))fail(400,'구간 표시의 페이지를 확인해 주세요.');
  for(const id of [...new Set(song.pages.flatMap(p=>[p.id,...(p.source?[p.source]:[])]))]){const f=await db().prepare("SELECT id FROM files WHERE id=? AND kind='raw'").bind(id).first();if(!f)fail(400,'등록된 악보 파일을 선택해 주세요.');}

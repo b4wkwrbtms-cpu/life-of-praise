@@ -1,33 +1,42 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {MapPin,Trash2,X} from 'lucide-react';
-import {Slider} from '@/components/ui/slider';
-import {SECTIONS as FORM_SECTIONS,type Song,type ScorePage,type SectionMarker} from '@/lib/types';
+import {Hand,MapPin,Move,Trash2} from 'lucide-react';
+import {Switch} from '@/components/ui/switch';
+import {SECTIONS as FORM_SECTIONS,type Song,type ScorePage,type SectionMarker,type Layout} from '@/lib/types';
 import {sectionMarkerText} from '@/lib/client';
 import {Picker} from './ui';
 import ScorePreview from './score-preview';
-
+import ScoreAdjustment from './score-adjustment';
 const SECTIONS=FORM_SECTIONS.filter(s=>s!=='Cx2'&&s!=='Bridge x 2');
 export default function SectionMarkerEditor({page,song,onChange,meta,disabled=false}:{page?:ScorePage;song:Song;onChange:(patch:Partial<Song>)=>void;meta:string;disabled?:boolean}){
- const [placing,setPlacing]=useState<SectionMarker['type']|null>(null),[selected,setSelected]=useState('');
- useEffect(()=>{setPlacing(null);setSelected('');},[page?.id]);
- const markers=song.markers||[],visible=markers.filter(m=>m.pageId===page?.id),marker=visible.find(m=>m.id===selected);
+ const [mode,setMode]=useState<'scroll'|'form'|'markers'>('scroll'),[placing,setPlacing]=useState<SectionMarker['type']|null>(null),[selected,setSelected]=useState(''),[zoom,setZoom]=useState(100),[showControls,setShowControls]=useState(true);
+ useEffect(()=>{setPlacing(null);setSelected('');setMode('scroll');setZoom(100)},[page?.id]);
+ const markers=song.markers||[],marker=markers.find(m=>m.id===selected&&m.pageId===page?.id),layout=page?.layout??song.layout;
  const edit=(id:string,patch:Partial<SectionMarker>)=>onChange({markers:markers.map(m=>m.id===id?{...m,...patch}:m)});
- const add=(x:number,y:number)=>{if(!page||!placing||markers.length>=200)return;const id=crypto.randomUUID();onChange({markers:[...markers,{id,pageId:page.id,type:placing,x,y,size:.018}]});setSelected(id);setPlacing(null);};
- return <><fieldset className="section-marker-tools" disabled={disabled||!page}>
-  <div className="row spread"><h3><MapPin size={17}/>악보 위 구간 표시</h3><span className="marker-count">이 페이지 {visible.length}개</span></div>
-  <p>구간을 고른 뒤 오선 위의 빈 곳을 누르세요. 표시를 선택하면 그 표시만 조절됩니다. 빈 곳을 누르면 선택이 풀려 악보를 스크롤할 수 있습니다.</p>
-  <div className="marker-type-buttons">{SECTIONS.map(type=><button type="button" key={type} aria-pressed={placing===type} className={placing===type?'active':''} disabled={markers.length>=200} onClick={()=>{setPlacing(placing===type?null:type);setSelected('');}}>{type==='V'?'V · Verse':type==='V1'?'V1 · 1절':type==='V2'?'V2 · 2절':type==='C'?'C · Chorus':type}</button>)}</div>
-  {placing&&<div className="marker-placement" role="status"><MapPin size={16}/><span><strong>{sectionMarkerText(placing)}</strong> 표시할 위치를 악보에서 눌러 주세요.</span><button type="button" aria-label="구간 배치 취소" onClick={()=>setPlacing(null)}><X size={18}/></button></div>}
-  {visible.length>0&&<div className="marker-list" aria-label="이 페이지의 구간 표시">{[...visible].sort((a,b)=>a.y-b.y).map((m,i)=><button type="button" key={m.id} aria-pressed={selected===m.id} className={selected===m.id?'selected':''} onClick={()=>{setSelected(m.id);setPlacing(null);}}>{sectionMarkerText(m.type)}<small>{i+1}</small></button>)}</div>}
-  {marker&&<div className="marker-controls">
-   <div className="row spread"><Picker label="선택한 구간 종류" value={marker.type} onChange={type=>edit(marker.id,{type:type as SectionMarker['type']})} options={SECTIONS.map(type=>({value:type,label:type==='V'?'V · Verse':type==='V1'?'V1 · 1절':type==='V2'?'V2 · 2절':type==='C'?'C · Chorus':type}))}/><button type="button" className="text-button danger" onClick={()=>{onChange({markers:markers.filter(m=>m.id!==marker.id)});setSelected('');}}><Trash2 size={16}/>삭제</button></div>
-   <div className="slider-field"><span>가로 위치</span><Slider aria-label="구간 표시 가로 위치" disabled={disabled} min={0} max={.98} step={.001} value={[marker.x??.02]} onValueChange={([x])=>edit(marker.id,{x})}/></div>
-   <div className="slider-field"><span>세로 위치</span><Slider aria-label="구간 표시 세로 위치" disabled={disabled} min={0} max={.97} step={.001} value={[marker.y]} onValueChange={([y])=>edit(marker.id,{y})}/></div>
-   <div className="slider-field"><span>선택 크기</span><Slider aria-label="선택한 구간 표시 크기" disabled={disabled} min={.014} max={.045} step={.001} value={[marker.size]} onValueChange={([size])=>edit(marker.id,{size})}/></div>
-  </div>}
-  <small className="marker-sharing">임시저장 후 ‘팀에 공개’를 누르면 팀 악보와 저장 이미지에 함께 반영됩니다. 상단 송폼 순서는 그대로 유지됩니다.</small>
- </fieldset>
- <ScorePreview page={page} song={song} meta={meta} selectedMarker={selected} placing={!!placing&&!disabled} onMarkerPlace={disabled?undefined:add} onMarkerSelect={setSelected} onMarkerMove={disabled?undefined:(id,x,y)=>edit(id,{x,y})}/>
- </>;
+ const changeLayout=(patch:Partial<Layout>)=>{if(page)onChange({pages:song.pages.map(p=>p.id===page.id?{...p,layout:{...layout,...patch}}:p)})};
+ const add=(x:number,y:number)=>{if(!page||!placing||markers.length>=200)return;const id=crypto.randomUUID();onChange({markers:[...markers,{id,pageId:page.id,type:placing,x,y,size:.025}]});setSelected(id);setPlacing(null)};
+ return <div className="score-workbench">
+  <fieldset className="score-modebar" disabled={disabled||!page}>
+   <div className="score-modes" aria-label="악보 조작 모드">
+    {([{id:'scroll',label:'스크롤',icon:Hand},{id:'form',label:'송폼 이동',icon:Move},{id:'markers',label:'구간 표시',icon:MapPin}] as const).map(m=><button type="button" key={m.id} aria-pressed={mode===m.id} className={mode===m.id?'active':''} onClick={()=>{setMode(m.id);setPlacing(null)}}><m.icon size={16}/>{m.label}</button>)}
+   </div><select aria-label="악보 화면 배율" value={zoom} onChange={e=>setZoom(Number(e.target.value))}>{[100,125,150,200].map(n=><option value={n} key={n}>{n===100?'화면 맞춤':n+'%'}</option>)}</select>
+  </fieldset>
+  <p className="score-mode-hint" role="status">{mode==='scroll'?'악보를 자유롭게 스크롤하세요. 편집하려면 위에서 모드를 선택하세요.':mode==='form'?(layout.margin?'상단 여백에 고정된 송폼입니다. 여백을 끄면 악보 위로 이동할 수 있습니다.':'송폼을 끌어 원하는 곳에 놓으세요. 아래에서 크기와 위치를 조절할 수 있습니다.'):placing?sectionMarkerText(placing)+' · 악보에서 놓을 위치를 한 번 누르세요.':'악보 위 표시를 눌러 선택하고 끌어 옮기세요. 스크롤 모드로 돌아가면 화면을 움직일 수 있습니다.'}</p>
+  <div className="score-viewport"><ScorePreview page={page} song={song} meta={meta} zoom={zoom} editing={mode!=='scroll'&&!disabled} formSelected={mode==='form'} onFormMove={mode==='form'&&!layout.margin&&!disabled?(x,y)=>changeLayout({x,y}):undefined} selectedMarker={mode==='markers'?selected:undefined} placing={mode==='markers'&&!!placing&&!disabled} onMarkerPlace={disabled?undefined:add} onMarkerSelect={setSelected} onMarkerMove={mode==='markers'&&!disabled?(id,x,y)=>edit(id,{x,y}):undefined}/></div>
+  {mode!=='scroll'&&<button type="button" className="score-controls-toggle" aria-expanded={showControls} onClick={()=>setShowControls(!showControls)}>{showControls?'조절 도구 접기 · 악보 넓게 보기':'크기·위치 조절 도구 열기'}</button>}
+  {mode!=='scroll'&&showControls&&<fieldset className="score-controls" disabled={disabled||!page}>
+   {mode==='form'?<><div className="row spread"><strong>현재 페이지 송폼</strong><label className="row"><span>상단 여백</span><Switch checked={layout.margin} onCheckedChange={margin=>changeLayout({margin})}/></label></div>
+    <ScoreAdjustment label="글자 크기" min={.008} max={.2} step={.002} value={layout.size} onChange={size=>changeLayout({size})}/>
+    <ScoreAdjustment label="가로 위치" max={.98} step={.005} value={layout.x} onChange={x=>changeLayout({x})}/>
+    <ScoreAdjustment label="세로 위치" max={.97} step={.005} value={layout.y} disabled={layout.margin} onChange={y=>changeLayout({y})}/>
+    <ScoreAdjustment label="송폼 너비" min={.1} max={1} step={.01} value={layout.width} onChange={width=>changeLayout({width})}/>
+   </>:<><div className="marker-type-buttons">{SECTIONS.map(type=><button type="button" key={type} aria-pressed={placing===type} className={placing===type?'active':''} disabled={markers.length>=200} onClick={()=>{setPlacing(placing===type?null:type);setSelected('')}}>{type==='V'?'V · Verse':type==='C'?'C · Chorus':type}</button>)}</div>
+    <div className="marker-selection-tools">{marker?<><div className="row spread"><Picker label="선택한 구간 종류" value={marker.type} onChange={type=>edit(marker.id,{type:type as SectionMarker['type']})} options={SECTIONS.map(type=>({value:type,label:sectionMarkerText(type)}))}/><button type="button" className="text-button danger" onClick={()=>{onChange({markers:markers.filter(m=>m.id!==marker.id)});setSelected('')}}><Trash2 size={16}/>선택 표시 삭제</button></div>
+     <ScoreAdjustment label="선택 크기" min={.014} max={.1} step={.002} value={marker.size} onChange={size=>edit(marker.id,{size})}/>
+     <ScoreAdjustment label="가로 위치" max={.98} step={.005} value={marker.x??.02} onChange={x=>edit(marker.id,{x})}/>
+     <ScoreAdjustment label="세로 위치" max={.97} step={.005} value={marker.y} onChange={y=>edit(marker.id,{y})}/>
+    </>:<p className="subtle">위에서 구간을 골라 추가하거나, 악보에 있는 표시를 선택해 주세요. 선택한 표시만 변경됩니다.</p>}</div>
+   </>}
+  </fieldset>}
+ </div>;
 }

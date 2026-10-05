@@ -53,3 +53,14 @@ const repeatWrap=await renderScore(createCanvas(1,1),{...page,layout:{...repeatS
 assert.ok(repeatWrap.offset>0);assert.equal(repeatWrap.overflow,false);
 writeFileSync('.sites-runtime/qa/score-repeats.png',repeatCanvas.toBuffer('image/png'));
 console.log('PASS: Cx2 and Bridge x 2 render with unchanged section-box geometry');
+
+const largeForm={...inlineSong,form:[{id:'large',type:'Cx2'}]};
+const big=await renderScore(createCanvas(1,1),{...page,layout:{...largeForm.layout,size:.2}},largeForm);
+assert.ok(big.formBox.h>g.formBox.h*8,'Short forms grow to requested size, not an auto-shrunk maximum');
+assert.equal(big.overflow,false);
+const displaced=await renderScore(createCanvas(1,1),{...page,layout:{...largeForm.layout,x:.4,y:.5,size:.08}},largeForm);
+assert.equal(displaced.formBox.x,480);assert.equal(displaced.formBox.y,800);
+const largeMarker=await renderScore(createCanvas(1,1),page,{...inlineSong,markers:[{...inlineSong.markers[0],size:.1}]});
+assert.equal(largeMarker.markerBoxes[0].h,150);
+await assert.rejects(()=>renderScore(createCanvas(1,1),{...page,layout:{...largeForm.layout,width:.1,size:.2,margin:true}},{...largeForm,form:Array.from({length:100},(_,i)=>({id:'huge'+i,type:'Bridge x 2'}))}),/너무 큽니다/);
+console.log('PASS: large Cx2 sizes, exact form hit boxes, 10% marker sizes, and bounded image memory');

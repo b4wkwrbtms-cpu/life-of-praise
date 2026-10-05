@@ -57,3 +57,6 @@ export function weekShareText(d:Worship,options:{scripture:boolean;form:boolean;
  });
  return [`[${d.date} ${d.title}]`,'',`📖 이번 주 말씀 | ${d.passage}${d.translation?' ('+d.translation+')':''}`,...(options.scripture?[d.scripture]:[]),'','🎵 찬양 순서',...songs,...(options.notice&&d.rehearsal?['',`연습 안내: ${d.rehearsal}`]:[]),...(options.notice&&d.notice?['',`공지: ${d.notice}`]:[])].join('\n');
 }
+
+// Each import is an independent song; saved originals and other services remain untouched.
+export function cloneFixedSongs(items:FixedSong[]):Song[]{return items.map(f=>({...structuredClone(f.data),id:crypto.randomUUID(),fixedId:f.id,exports:[],form:f.data.form.map(s=>({...s,id:crypto.randomUUID()})),markers:f.data.markers?.map(m=>({...m,id:crypto.randomUUID()}))}));}

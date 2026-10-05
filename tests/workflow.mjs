@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {parseSongForm,publicationIssues,nextCopyDate,selectCurrentService,newSong,newWorship,weekShareText} from '../lib/types.ts';
+import {parseSongForm,publicationIssues,nextCopyDate,selectCurrentService,newSong,newWorship,weekShareText,cloneFixedSongs} from '../lib/types.ts';
 assert.deepEqual(parseSongForm('Intro - V1 - Cx2 - Bridge x 2 - Outro'),['Intro','V1','Cx2','Bridge x 2','Outro']);
 assert.deepEqual(parseSongForm('intro → v2 → C × 2 / Bridge ×2, outro'),['Intro','V2','Cx2','Bridge x 2','Outro']);
 assert.deepEqual(parseSongForm('V1 PC C\nInter'),['V1','PC','C','Inter']);
@@ -31,3 +31,11 @@ assert.ok(!weekShareText(worship,{...shareOptions,links:false}).includes('https:
 another.link='';assert.ok(!weekShareText(worship,shareOptions).split('2. 두 번째 찬양')[1].includes('유튜브:'));
 song.link='javascript:alert(1)';assert.ok(!weekShareText(worship,shareOptions).includes('javascript:'));
 console.log('PASS: per-song YouTube URLs, absent links, optional link sharing and invalid URL exclusion');
+const originals=[{id:'fixed-a',data:song},{id:'fixed-b',data:another}];
+const copies=cloneFixedSongs(originals);
+assert.deepEqual(copies.map(s=>s.fixedId),['fixed-a','fixed-b']);
+assert.notEqual(copies[0].id,song.id);assert.notEqual(copies[0].form[0].id,song.form[0].id);
+copies[0].pages[0].layout={...copies[0].layout,size:.2};copies[0].title='independent';
+assert.equal(song.pages[0].layout,undefined);assert.notEqual(song.title,copies[0].title);
+assert.deepEqual(copies[0].exports,[]);
+console.log('PASS: ordered multi-song imports, fresh IDs and isolated saved originals');
