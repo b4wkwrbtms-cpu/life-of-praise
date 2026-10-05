@@ -16,36 +16,37 @@ async function upload(who,church,kind='raw'){const form=new FormData();form.appe
 async function image(who,id,church,expected=200,extra={}){const res=await mf.dispatchFetch('http://app.test/api/files/'+id,{headers:{...headers(who,church),...extra}});assert.equal(res.status,expected);return res;}
 try{
  const db=await mf.getD1Database('DB');
+ const createChurch=async(who,name)=>{const {code}=await call('owner','platform/invites','POST',{label:name});const a=await call(who,'church-applications','POST',{name:who+' 인도자',churchName:name,leaderCode:code});return (await call('owner','platform/applications/'+a.id+'/approve','POST',{})).churchId;};
  const migrate=async file=>{for(const q of readFileSync('drizzle/'+file,'utf8').split('--> statement-breakpoint').map(s=>s.trim()).filter(Boolean))await db.prepare(q).run();};
  const migrations=readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort();
- for(const file of migrations.filter(f=>!f.startsWith('0002')))await migrate(file);
+ for(const file of migrations.filter(f=>f<'0002'))await migrate(file);
  // Start with the actual old schema and populated records, then migrate it.
  await db.prepare("INSERT INTO profiles (id,name,position,role,active,created) VALUES ('owner','기존 인도자','건반','admin',1,1),('legacy','기존 팀원','드럼','member',1,2)").run();
  await db.prepare("INSERT INTO settings (id,value) VALUES ('invite',?)").bind(createHash('sha256').update('old-invite').digest('hex')).run();
  await db.prepare("INSERT INTO services (id,title,date,draft,published,version,revision,updated) VALUES ('old-week','기존 예배','2026-10-04',?,?,1,2,1)").bind(JSON.stringify(worship),JSON.stringify(worship)).run();
  await db.prepare("INSERT INTO files (id,owner,name,type,kind,shared,size,created) VALUES ('old-file','owner','old.png','image/png','raw',1,1,1)").run();
  await db.prepare("INSERT INTO fixed_songs (id,title,data,updated) VALUES ('old-fixed','기존 고정찬양',?,1)").bind(JSON.stringify(song)).run();
- for(const file of migrations.filter(f=>f.startsWith('0002')))await migrate(file);
+ for(const file of migrations.filter(f=>f>='0002'))await migrate(file);
  const before=await call('legacy','me');assert.equal(before.church.name,'유엘인교회 찬양팀');assert.equal(before.profile.role,'member');assert.equal(before.profile.position,'드럼');assert.equal(before.superAdmin,false);
  assert.equal((await call('owner','me')).profile.superAdmin,true);assert.equal((await call('owner','services'))[0].id,'old-week');assert.equal((await call('owner','fixed-songs'))[0].id,'old-fixed');assert.equal((await db.prepare("SELECT church_id FROM files WHERE id='old-file'").first()).church_id,'uelin');
  await call('oldjoin','me','POST',{name:'이전 초대 가입',position:'싱어',invite:'old-invite'});
  assert.equal((await call('oldjoin','me')).church.id,'uelin');
  assert.equal((await call('newcomer','me')).profile,null);await call('newcomer','me','POST',{name:'무단 가입',position:'인도자'},403);await call('newcomer','services','GET',undefined,403);
- await call('a','churches','POST',{name:'가 인도자',churchName:'가교회 찬양팀',position:'싱어'},400);
- const A=(await call('a','churches','POST',{name:'가 인도자',churchName:'가교회 찬양팀',position:'인도자'})).churchId;
- const B=(await call('b','churches','POST',{name:'나 인도자',churchName:'나교회 찬양팀',position:'인도자'})).churchId;
+ await call('a','churches','POST',{name:'가 인도자',churchName:'가교회 찬양팀',position:'싱어'},403);
+ const A=await createChurch('a','가교회 찬양팀');
+ const B=await createChurch('b','나교회 찬양팀');
  assert.equal((await call('a','me','GET',undefined,200,A)).profile.role,'admin');assert.equal((await call('a','me','GET',undefined,200,A)).superAdmin,false);
  assert.deepEqual((await call('a','churches')).map(c=>c.id),[A]);assert.equal((await call('owner','churches')).length,3);
  assert.equal((await call('a','services','GET',undefined,200,A)).length,0);assert.equal((await call('a','fixed-songs','GET',undefined,200,A)).length,0);
  await call('a','churches/select','POST',{id:B},403);await call('a','services','GET',undefined,403,B);await call('a','services','GET',undefined,403,'uelin');
  await call('a','churches/'+B,'PATCH',{name:'탈취 시도'},403,A);await call('a','churches/'+A,'PATCH',{active:false},403,A);
  const ia=(await call('a','invite','POST',undefined,200,A)).code,ib=(await call('b','invite','POST',undefined,200,B)).code;
- await call('candidate','me','POST',{name:'승인 대기',position:'인도자',invite:ia});await call('candidate','me','POST',{name:'승인 대기',position:'드럼',invite:ib});
- let m=await call('candidate','me','GET',undefined,200,A);assert.equal(m.profile.role,'member');assert.equal(m.profile.leaderRequested,1);assert.equal((await call('candidate','me','GET',undefined,200,B)).profile.position,'드럼');
+ await call('candidate','me','POST',{name:'승인 대기',position:'인도자',invite:ia},403);await call('candidate','me','POST',{name:'신규 팀원',position:'싱어',invite:ia});await call('candidate','me','POST',{name:'승인 대기',position:'드럼',invite:ib});
+ let m=await call('candidate','me','GET',undefined,200,A);assert.equal(m.profile.role,'member');assert.equal(m.profile.leaderRequested,0);assert.equal((await call('candidate','me','GET',undefined,200,B)).profile.position,'드럼');
  await call('candidate','services','POST',worship,403,A);await call('candidate','team','GET',undefined,403,A);
- await call('b','team','PATCH',{id:'candidate',role:'admin'},400,B);await call('a','team','PATCH',{id:'b',role:'admin'},404,A);
- await call('a','team','PATCH',{id:'candidate',role:'admin'},200,A);
- assert.equal((await call('candidate','me','GET',undefined,200,A)).profile.role,'admin');assert.equal((await call('candidate','me','GET',undefined,200,B)).profile.role,'member');
+ await call('b','team','PATCH',{id:'candidate',role:'admin'},403,B);await call('a','team','PATCH',{id:'b',role:'admin'},404,A);
+ await call('a','team','PATCH',{id:'candidate',role:'admin'},403,A);
+ assert.equal((await call('candidate','me','GET',undefined,200,A )).profile.role,'member');assert.equal((await call('candidate','me','GET',undefined,200,B)).profile.role,'member');
  await call('candidate','services','POST',worship,403,B);
  const raw=await upload('a',A),exp=await upload('a',A,'export'),score=structuredClone(worship);score.songs[0].pages=[{id:raw,width:192,height:192}];score.songs[0].exports=[exp];
  const bscore=structuredClone(worship);bscore.songs[0].pages=[{id:await upload('b',B),width:192,height:192}];bscore.songs[0].exports=[await upload('b',B,'export')];
@@ -70,7 +71,7 @@ try{
  // Removing access in A leaves the same user's B membership intact.
  await call('a','team','PATCH',{id:'candidate',active:false},200,A);await call('candidate','services','GET',undefined,403,A);assert.equal((await call('candidate','services','GET',undefined,200,B)).length,1);
  await call('candidate','me','POST',{name:'재가입 시도',position:'인도자',invite:ia},403);await call('a','team','PATCH',{id:'candidate',active:true},200,A);
- await call('a','team','PATCH',{id:'a',role:'member'},400,A);await call('owner','team','PATCH',{id:'b',active:false},400,B);
+ await call('a','team','PATCH',{id:'a',role:'member'},403,A);await call('owner','team','PATCH',{id:'b',active:false},400,B);
  await call('owner','churches/'+B,'PATCH',{active:false});await call('b','services','GET',undefined,403,B);await call('b','churches/select','POST',{id:B},403);assert.equal((await call('owner','services','GET',undefined,200,B)).length,1);
  await call('owner','churches/'+B,'PATCH',{active:true});await call('owner','churches/uelin','PATCH',{active:false},400);
  await call('owner','churches/'+B,'PATCH',{name:'나교회 찬양팀 변경'});assert.equal((await call('b','me','GET',undefined,200,B)).church.name,'나교회 찬양팀 변경');

@@ -1,6 +1,6 @@
 # 생명의 찬양
 
-A Korean worship-team workspace with separate church spaces. Sign in using platform-owned ChatGPT authentication, then create a church as its leader or join an existing church with an invitation. Selecting 인도자 in an existing church requests approval; it never grants permissions by itself. The configured owner is the platform-wide administrator, while approved leaders manage only their own churches.
+A Korean worship-team workspace with separate church spaces. Sign in using platform-owned ChatGPT authentication. New leaders apply with a single-use invitation issued by the platform owner; the owner must approve the applicant and church together before a church or leader membership is created. Team invitations join only the issuing church and cannot grant leadership. The configured owner is the platform-wide administrator, while approved leaders manage only their own churches.
 
 ## Product
 
@@ -25,7 +25,9 @@ Logical bindings: D1 `DB`, R2 `BUCKET`. Runtime secret: `OWNER_EMAIL` (configure
 
 Use the Sites build workflow, then `node tests/api-integration.mjs` and `node tests/score-render.mjs`. Integration tests run against an isolated in-memory Miniflare instance with synthetic identities. They never touch production or the user's plans. Canvas tests use a generated staff fixture; no copyrighted score is bundled.
 
-`node tests/church-isolation.mjs` starts with populated pre-migration tables, applies the church migration, and checks scoped roles, leader approval, cross-church IDs/files, private attachments, invitations, revoked membership, last-leader protection, suspension, and platform-owner access.
+`node tests/church-isolation.mjs` starts with populated pre-migration tables, applies church and governance migrations, and checks scoped roles, approved church creation, cross-church IDs/files, private attachments, invitations, revoked membership, last-leader protection, suspension, and platform-owner access.
+
+`node tests/church-governance.mjs` checks owner-only leader codes, code expiry/revocation/single use, approval and rejection, concurrent applications and approvals, blocked self-promotion, scoped development requests and replies, idempotent submissions, optimistic status updates, and suspended/revoked access. All test users and records are synthetic and isolated from production.
 
 `pnpm exec tsc --noEmit` validates types. `pnpm run db:generate` generates migrations for deliberate schema changes. The app uses the existing Sites managed preview and publication scripts.
 
@@ -37,10 +39,17 @@ Site audience and application memberships are separate gates. The current Site a
 
 - Logical tenant isolation uses shared D1/R2 infrastructure. Each church has its own leaders, memberships, invitations, worship plans, fixed-song catalog and files. Versions, discussions, personal cues and trash are checked through the owning service's church.
 - The default church is `uelin`, displayed as **유엘인교회 찬양팀**. Schema defaults retain existing files, services and fixed songs. An idempotent data-only migration copies existing profiles into this church's memberships and preserves the old invitation. New accounts have no legacy membership.
-- Creating a church explicitly as 인도자 grants leadership in that new church only. Existing-church leader requests need approval by a church leader or the platform administrator. Membership roles and positions are separate for each church; disabling membership affects only that church. The final active leader cannot be removed.
-- The platform administrator can switch to any church, rename it, approve its leaders, and suspend/reopen its operation while preserving records. The default church cannot be suspended.
+- Only the platform owner issues leader application codes. Codes expire after seven days, accept one application, and are stored as hashes; the plaintext is displayed once on issuance. Applying creates no church or membership. Owner approval atomically creates the church and applicant's leadership; rejection records a reason and requires a new code to reapply. Direct church creation and local role promotion are blocked. Existing leaders and memberships are preserved.
+- Membership roles and positions are separate for each church; disabling membership affects only that church. The final active leader cannot be removed. Church team codes never grant access to another church or permission to open a new church.
+- The platform administrator can switch to any church, rename it, approve applications, and suspend/reopen its operation while preserving records. The default church cannot be suspended.
 - Every resource API derives membership from authenticated identity and the selected church. Client headers, the selection cookie and file query parameters select context but never confer access. Immutable score URLs include church context so separate tabs remain independent.
-- 내 정보 contains church creation/joining/switching, leader approval and invitations; the platform owner sees 전체 교회 관리 with leaders and counts.
+- The platform owner enters 전체 교회 관리 from the header or the top of 내 정보: church list, approval queue, leader invitations, and development requests. It has no direct church-creation or team-join controls. Other members use 내 정보 for invited joining/switching or an owner-code-protected leader application. Approved leaders manage their own team invitations.
+
+## Church development requests
+
+- 개발자에게 부탁해요 is available in each church. Members can submit categorized requests and reply; only that church and the platform owner can read them. The server derives the church and author from membership, never from submitted body fields.
+- The owner sees all requests with church/status/search filters, replies as 개발자, and changes status through 접수, 검토 중, 진행 중, 완료, 보류. Status changes use optimistic revision checks; request/reply IDs make retrying the same submission idempotent.
+- This is a request and progress board. Church-specific development is carried out separately after reviewing a request; submissions do not execute code. Billing and the proposed monthly subscription are not enabled.
 
 ## Preparation and rehearsal refinements
 

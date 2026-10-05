@@ -1,5 +1,7 @@
 import {z} from 'zod';
 import {accountApi,teamApi} from '@/lib/church-api';
+import {platformApi} from '@/lib/platform-api';
+import {developerApi} from '@/lib/developer-requests';
 import {purgeService} from '@/lib/purge-service';
 import {ApiError,admin,bindings,changes,db,digest,fail,getService,identity,isOwner,json,member,profileSchema,worshipSchema,songSchema,validateSongFiles} from '@/lib/server';
 import type {Profile,Worship} from '@/lib/types';
@@ -9,8 +11,10 @@ async function handle(req:Request){try{
 const url=new URL(req.url),path=url.pathname.replace(/^\/api\//,'').split('/'),method=req.method;
 if(method!=='GET'&&(req.headers.get('sec-fetch-site')==='cross-site'||(req.headers.get('origin')&&req.headers.get('origin')!==url.origin)))fail(403,'같은 앱에서 다시 시도해 주세요.');
 const user=await identity();
+const platformResponse=await platformApi(req,path,user,()=>read(req));if(platformResponse)return platformResponse;
 const accountResponse=await accountApi(req,path,user,()=>read(req));if(accountResponse)return accountResponse;
 const p=await member(req);
+if(path[0]==='developer-requests')return await developerApi(req,path,p,()=>read(req));
 if(path[0]==='team')return await teamApi(req,p,()=>read(req));
 if(path[0]==='invite'&&method==='POST'){admin(p);const code=crypto.randomUUID().replaceAll('-','');await db().prepare('UPDATE churches SET invite_hash=? WHERE id=?').bind(await digest(code),p.churchId).run();return json({code,churchId:p.churchId});}
 if(path[0]==='files'){

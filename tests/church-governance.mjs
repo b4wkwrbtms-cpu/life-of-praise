@@ -1,0 +1,53 @@
+import {createRequire} from 'node:module';
+import {dirname,resolve} from 'node:path';
+import {readFileSync,readdirSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+const require=createRequire(import.meta.url),{Miniflare}=await import(require.resolve('miniflare',{paths:[dirname(require.resolve('wrangler/package.json'))]}));
+const root=resolve('dist/server'),paths=readdirSync(root,{recursive:true}).filter(p=>p.endsWith('.js')||p.endsWith('.mjs')).sort((a,b)=>a==='index.js'?-1:b==='index.js'?1:a.localeCompare(b));
+const mf=new Miniflare({modules:paths.map(p=>({type:'ESModule',path:resolve(root,p)})),modulesRoot:root,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['BUCKET'],bindings:{OWNER_EMAIL:'owner@example.test'}});
+let checks=0;
+async function request(who,path,method='GET',body,church){const res=await mf.dispatchFetch('http://app.test/api/'+path,{method,headers:{'oai-authenticated-user-id':who,'oai-authenticated-user-email':who+'@example.test',...(church?{'X-Church-Id':church}:{}),...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});return {status:res.status,data:await res.json()};}
+async function call(who,path,method='GET',body,status=200,church){checks++;const r=await request(who,path,method,body,church);assert.equal(r.status,status,JSON.stringify({who,path,...r}));return r.data;}
+try{
+ const db=await mf.getD1Database('DB');for(const file of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())for(const q of readFileSync('drizzle/'+file,'utf8').split('--> statement-breakpoint').map(x=>x.trim()).filter(Boolean))await db.prepare(q).run();
+ await call('owner','me','POST',{name:'총관리자',position:'인도자'});
+ const team=(await call('owner','invite','POST')).code;
+ await call('outsider','churches','POST',{name:'무단 인도자',churchName:'무단 교회',position:'인도자'},403);await call('owner','churches','POST',{name:'총관리자',churchName:'직접 생성',position:'인도자'},403);
+ await call('outsider','platform/invites','POST',{label:'가짜 발급'},403);await call('outsider','platform/applications','GET',undefined,403);
+ await call('outsider','church-applications','POST',{name:'신청인',churchName:'팀원 코드 오용',leaderCode:team},403);
+ const invite=await call('owner','platform/invites','POST',{label:'첫 번째 교회 인도자'});
+ assert.ok(invite.expires>Date.now());assert.equal(invite.code.length,32);assert.equal(JSON.stringify(await call('owner','platform/invites')).includes(invite.code),false,'Plaintext codes are not stored or returned in lists');
+ await call('leader','me','POST',{name:'인도자',position:'싱어',invite:invite.code},403);
+ const application=await call('leader','church-applications','POST',{name:'가 인도자',churchName:'가교회',leaderCode:invite.code});
+ let me=await call('leader','me');assert.equal(me.profile,null);assert.equal(me.applications[0].status,'pending');assert.equal((await call('leader','churches')).length,0);assert.equal((await call('owner','churches')).length,1);
+ await call('leader','invite','POST',undefined,403);await call('leader','services','GET',undefined,403);await call('leader','platform/applications/'+application.id+'/approve','POST',{},403);
+ await call('other','church-applications','POST',{name:'재사용',churchName:'재사용 교회',leaderCode:invite.code},403);
+ assert.equal((await call('other','church-applications')).length,0,'Applicants cannot see one another');
+ const spare=await call('owner','platform/invites','POST',{label:'중복 신청 검토'});await call('leader','church-applications','POST',{name:'중복',churchName:'두 번째 신청',leaderCode:spare.code},409);
+ assert.equal((await db.prepare('SELECT claimed_by FROM leader_invites WHERE id=?').bind(spare.id).first()).claimed_by,null,'A pending-user rejection does not consume a new code');
+ const A=(await call('owner','platform/applications/'+application.id+'/approve','POST',{})).churchId;
+ me=await call('leader','me','GET',undefined,200,A);assert.equal(me.profile.role,'admin');assert.equal(me.superAdmin,false);assert.equal(me.applications[0].status,'approved');
+ await call('owner','platform/applications/'+application.id+'/approve','POST',{},409);assert.equal((await call('owner','churches')).length,2,'Repeated approval cannot duplicate the church');
+ const acode=(await call('leader','invite','POST',undefined,200,A)).code;
+ await call('member','me','POST',{name:'팀원',position:'인도자',invite:acode},403);await call('member','me','POST',{name:'팀원',position:'드럼',invite:acode});assert.equal((await call('member','me')).church.id,A);
+ await call('member','me','POST',{name:'권한 상승',position:'인도자'},403,A);await call('leader','team','PATCH',{id:'member',role:'admin'},403,A);await call('owner','team','PATCH',{id:'member',role:'admin'},403,A);
+ await call('member','churches','POST',{name:'팀원',churchName:'우회 개설',position:'인도자'},403,A);await call('member','services','GET',undefined,403,'uelin');
+ const rejected=await call('rejectee','church-applications','POST',{name:'거절 신청자',churchName:'보류 교회',leaderCode:spare.code});
+ await call('owner','platform/applications/'+rejected.id+'/reject','POST',{reason:'교회 담당자 확인이 필요합니다.'});assert.equal((await call('rejectee','me')).applications[0].reason,'교회 담당자 확인이 필요합니다.');assert.equal((await call('rejectee','churches')).length,0);await call('owner','platform/applications/'+rejected.id+'/approve','POST',{},409);
+ const cancelled=await call('owner','platform/invites','POST',{label:'취소할 초대'});await call('owner','platform/invites/'+cancelled.id,'PATCH');await call('outsider','church-applications','POST',{name:'신청자',churchName:'취소코드',leaderCode:cancelled.code},403);
+ const expired=await call('owner','platform/invites','POST',{label:'만료 검토'});await db.prepare('UPDATE leader_invites SET expires=1 WHERE id=?').bind(expired.id).run();await call('outsider','church-applications','POST',{name:'신청자',churchName:'만료코드',leaderCode:expired.code},403);
+ const shared=await call('owner','platform/invites','POST',{label:'동시 사용 검토'});const race=await Promise.all(['race1','race2'].map(who=>request(who,'church-applications','POST',{name:who,churchName:'동시 신청 교회',leaderCode:shared.code})));assert.equal(race.filter(r=>r.status===200).length,1,'One code accepts exactly one applicant');assert.ok(race.some(r=>[403,409].includes(r.status)));const winning=race.find(r=>r.status===200).data.id;
+ const approvals=await Promise.all([request('owner','platform/applications/'+winning+'/approve','POST',{}),request('owner','platform/applications/'+winning+'/approve','POST',{})]);assert.equal(approvals.filter(r=>r.status===200).length,1);assert.equal(approvals.filter(r=>r.status===409).length,1);
+ const requestId=randomUUID(),payload={id:requestId,title:'우리 교회 예배 순서',category:'기능 추가',details:'우리 교회에 맞는 예배 순서 필드를 부탁합니다.'};
+ await call('member','developer-requests','POST',payload,200,A);await call('member','developer-requests','POST',payload,200,A);assert.equal((await call('leader','developer-requests','GET',undefined,200,A)).length,1,'Retry does not duplicate requests');
+ assert.equal((await call('owner','developer-requests')).length,0);assert.equal((await call('owner','developer-requests?scope=all')).length,1);assert.equal((await call('owner','developer-requests?scope=all&church=uelin')).length,0);
+ await call('member','developer-requests?scope=all','GET',undefined,403,A);await call('leader','developer-requests/'+requestId,'PATCH',{status:'done',revision:1},403,A);
+ const B=approvals.find(r=>r.status===200).data.churchId,winner=race[0].status===200?'race1':'race2';
+ await call(winner,'developer-requests/'+requestId,'GET',undefined,404,B);await call(winner,'developer-requests/'+requestId+'/replies','POST',{id:randomUUID(),text:'다른 교회 접근'},404,B);
+ const answer={id:randomUUID(),text:'가교회에 맞춰 검토하겠습니다.'};await call('owner','developer-requests/'+requestId+'/replies','POST',answer);await call('owner','developer-requests/'+requestId+'/replies','POST',answer);await call('member','developer-requests/'+requestId+'/replies','POST',{id:randomUUID(),text:'감사합니다. 추가로 순서 변경도 필요합니다.'},200,A);
+ let detail=await call('leader','developer-requests/'+requestId,'GET',undefined,200,A);assert.equal(detail.replies.length,2);assert.equal(detail.replies[0].developer,1);assert.equal(detail.replies[1].developer,0);
+ await call('owner','developer-requests/'+requestId,'PATCH',{status:'working',revision:1});await call('owner','developer-requests/'+requestId,'PATCH',{status:'done',revision:1},409);detail=await call('member','developer-requests/'+requestId,'GET',undefined,200,A);assert.equal(detail.request.status,'working');assert.equal(detail.request.revision,2);
+ await call('leader','team','PATCH',{id:'member',active:false},200,A);await call('member','developer-requests/'+requestId,'GET',undefined,403,A);await call('owner','churches/'+A,'PATCH',{active:false});await call('leader','developer-requests','GET',undefined,403,A);assert.equal((await call('owner','developer-requests/'+requestId)).request.church_id,A);
+ console.log(`PASS: ${checks} governance/request API checks plus concurrent code claim and approval; mandatory owner invitations, pending/rejected states, team-only codes, per-church requests, developer replies, private access and stale-write guards.`);
+}finally{await mf.dispose()}
