@@ -1,7 +1,8 @@
 'use client';
 import {useState,useRef,useEffect} from 'react';
 import {Plus,Upload,Trash2,ChevronLeft,ChevronRight,ArrowUp,ArrowDown,Check,Send,Save,Music2,Copy,X,LoaderCircle,FileMusic,Undo2,Redo2} from 'lucide-react';
-import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {Dialog,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import DialogContent from './workbench-dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
 import {toast} from 'sonner';

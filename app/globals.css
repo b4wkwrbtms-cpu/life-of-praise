@@ -191,3 +191,28 @@
 
 .work-progress{position:absolute;top:64px;left:16px;right:16px;z-index:5;box-shadow:0 3px 12px #22351c15;border-radius:8px;pointer-events:none}
 @media(max-width:800px){.search-box input,.song-editor-fields input,.song-editor-fields textarea,.editor-info input,.editor-info textarea{font-size:16px}}
+
+/* Keep action labels horizontal; let the toolbar move whole controls, not syllables. */
+.editor-dialog[data-slot=dialog-content],.studio-dialog[data-slot=dialog-content]{margin:20px!important}
+.text-button,.primary,.secondary,.icon-button,.filter-button,.add-song{
+ writing-mode:horizontal-tb;white-space:nowrap;word-break:keep-all;flex-shrink:0;
+}
+.week-toolbar{flex-wrap:wrap;align-items:center;min-width:0}
+.week-toolbar>.picker{flex:1 1 245px;min-width:0;max-width:100%}
+.week-toolbar>.row{flex:0 0 auto;flex-wrap:nowrap;white-space:nowrap;gap:8px;margin-left:auto}
+.week-toolbar>.row>.text-button{min-width:62px;min-height:40px;justify-content:center}
+.week-toolbar>.row>.subtle{flex-shrink:0;white-space:nowrap}
+.weekly-tools{flex-wrap:wrap}
+.editor-dialog[data-slot=dialog-content],.studio-dialog[data-slot=dialog-content],.rehearsal-reader[data-slot=dialog-content]{
+ --tw-translate-x:0px;--tw-translate-y:0px;
+ translate:0px 0px!important;transform:none!important;animation:none!important;
+}
+@media(max-width:800px){
+ .week-toolbar{gap:10px}
+ .week-toolbar>.picker{flex:1 1 100%;width:100%!important;max-width:100%;font-size:14px}
+ .week-toolbar>.row{max-width:100%;gap:10px}
+ .week-toolbar .text-button{font-size:14px}
+ .editor-dialog[data-slot=dialog-content],.studio-dialog[data-slot=dialog-content]{width:100%!important;height:100dvh;max-height:100dvh;margin:0!important}
+ .editor-top>.row,.studio-header>.row{flex-shrink:0}
+ .heading-actions,.library-actions,.admin-foot,.comment-actions{flex-wrap:wrap}
+}

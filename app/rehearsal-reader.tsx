@@ -1,7 +1,8 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {ChevronLeft,ChevronRight,Maximize,X,Eye,EyeOff,LoaderCircle} from 'lucide-react';
-import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {Dialog,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import DialogContent from './workbench-dialog';
 import {toast} from 'sonner';
 import type {Service} from '@/lib/types';
 import ScorePreview from './score-preview';

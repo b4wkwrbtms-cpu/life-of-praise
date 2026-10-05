@@ -1,7 +1,8 @@
 'use client';
 import {useState,useEffect,useRef} from 'react';
 import {X,Download,Plus,Undo2,Trash2,ChevronLeft,ChevronRight,Maximize2,Minimize2,MessageCircle,Check,Music2,Move,ExternalLink,LoaderCircle} from 'lucide-react';
-import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {Dialog,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import DialogContent from './workbench-dialog';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Slider} from '@/components/ui/slider';
 import {toast} from 'sonner';
