@@ -1,0 +1,173 @@
+/* Shared visual standards. Score canvas geometry and gesture surfaces stay in globals.css. */
+:root {
+  --type-caption: .8125rem;
+  --type-label: .875rem;
+  --type-body: 1rem;
+  --type-title: 1.125rem;
+  --type-section: 1.25rem;
+  --type-page: 1.75rem;
+  --type-display: 2rem;
+  --muted-foreground: #637168;
+  --background: #f6f8f5;
+  --border: #dfe5df;
+  --input: #d2dcd4;
+  --surface-radius: 14px;
+  --control-radius: 10px;
+  --space-card: 24px;
+}
+body {font-size:var(--type-body);line-height:1.65;letter-spacing:-.02em;font-weight:400}
+h1,h2,h3 {font-weight:600;letter-spacing:-.025em;word-break:keep-all;overflow-wrap:anywhere}
+h1 {line-height:1.3} h2,h3 {line-height:1.45}
+button,input,textarea,select {letter-spacing:inherit}
+strong {font-weight:600}
+small {font-size:var(--type-caption);line-height:1.6}
+.eyebrow {font-size:var(--type-caption);font-weight:500;letter-spacing:.07em;color:var(--muted-foreground)}
+.workspace {max-width:1200px;padding-top:32px}
+.page-heading {gap:16px;margin-bottom:24px;align-items:center;flex-wrap:wrap}
+.page-heading>div:first-child {flex:1;min-width:180px}
+.page-heading .eyebrow {margin-bottom:8px}
+.page-heading p {font-size:var(--type-body);line-height:1.65;max-width:none;margin-top:8px}
+.heading-actions {padding-top:0;gap:8px;flex-wrap:wrap}
+.app-header {height:80px}
+.app-navigation {height:80px!important;gap:24px!important}
+.app-navigation [data-slot=tabs-trigger] {height:80px;font-size:var(--type-label);font-weight:500}
+.brand>span:last-child {font-size:var(--type-section);line-height:1.35;font-weight:600}
+.brand small,.header-profile small {font-size:var(--type-caption);font-weight:400;color:var(--muted-foreground)}
+.panel,.word-panel,.empty-state,.church-list article,.fixed-song-card,.request-card,.application-result {border-radius:var(--surface-radius);border-color:var(--border);box-shadow:none}
+.small-panel,.profile-card,.church-manager,.church-team,.platform-church-list article,.approval-card,.invite-management,.library-item,.request-card,.word-panel {padding:var(--space-card)}
+.panel-heading {padding:20px var(--space-card);gap:16px;align-items:center}
+.panel-heading h2 {margin-top:8px}
+.panel-heading p {font-size:var(--type-label);margin-top:4px}
+.panel-footer {padding:16px var(--space-card);font-size:var(--type-caption);line-height:1.6;flex-wrap:wrap}
+.week-grid,.profile-grid {gap:24px}
+.week-aside,.church-management-column,.archive-list {gap:16px}
+.small-panel>p,.church-manager p,.church-team p,.admin-entry p,.developer-entry p,.request-empty p,.fixed-library-intro,.fixed-empty {font-size:var(--type-body);line-height:1.65}
+.small-panel>p {margin:12px 0 16px}
+.small-panel h2,.church-manager h2,.church-team h2,.admin-entry h2,.invite-management h2 {font-size:var(--type-section)}
+.song-info h3,.fixed-song-info h3,.request-card h3,.approval-card h3,.platform-church-list strong,.library-title h2,.archive-body h2 {font-size:var(--type-title);font-weight:600;line-height:1.5}
+.song-list {padding:0 var(--space-card)}
+.song-row {padding:20px 0;gap:16px}
+.song-number {font-size:var(--type-label);width:24px;line-height:1.7;color:var(--muted-foreground)}
+.song-meta {gap:10px;margin:6px 0 8px;font-size:var(--type-caption);flex-wrap:wrap}
+.song-form,.fixed-song-info p,.library-import-info p {font-size:var(--type-label);line-height:1.65;font-family:inherit;letter-spacing:inherit}
+.part-note,.transition,.rehearsal-panel p,.conversation-card span {font-size:var(--type-label);line-height:1.65}
+.scripture,.request-body,.comment-text,.part-guidance p {font-size:var(--type-body);line-height:1.8}
+.primary,.secondary,.text-button,.filter-button,.fixed-import-button,.add-song,[data-slot=button] {
+  font-size:var(--type-label);font-weight:500;line-height:1.4;min-height:44px;
+  border-radius:var(--control-radius);gap:8px;white-space:nowrap;word-break:keep-all;flex-shrink:0;
+}
+.primary,.secondary {padding:11px 16px;box-shadow:none}
+.compact {min-height:40px;padding:9px 12px;font-size:var(--type-label)}
+.text-button {padding:8px 4px}
+.icon-button,.heading-actions .icon-button {width:44px;height:44px;min-width:44px;border-radius:var(--control-radius)}
+.primary:hover,.secondary:hover,.text-button:hover {box-shadow:none}
+.primary:focus-visible,.secondary:focus-visible,.text-button:focus-visible {outline:2px solid var(--ring);outline-offset:3px}
+.field {font-size:var(--type-label);gap:8px;margin-bottom:20px}
+.field>span {font-size:var(--type-label);font-weight:500;color:#40574a;line-height:1.5}
+.field>small {font-size:var(--type-caption);line-height:1.6}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),textarea,select,.picker {
+  font-size:var(--type-body);line-height:1.5;border-radius:var(--control-radius);border-color:var(--input);
+}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,.picker {min-height:44px}
+textarea {padding:12px}
+.field-row {gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.picker {height:auto!important;min-height:44px;font-size:var(--type-body)}
+.search-box {border-color:var(--input);border-radius:var(--control-radius);padding:0 14px;max-width:none;margin-bottom:20px;min-height:46px;background:white}
+.search-box input {font-size:var(--type-body);padding:10px 0}
+[data-slot=tabs-trigger] {font-family:inherit;font-weight:500;font-size:var(--type-label);line-height:1.4;word-break:keep-all;white-space:nowrap}
+.library-tabs,.church-mode-tabs,.platform-tabs,.library-import-tabs {background:#eaf0e9;padding:4px;gap:4px;border-radius:12px;height:auto}
+:is(.library-tabs,.church-mode-tabs,.platform-tabs,.library-import-tabs) [data-slot=tabs-trigger] {min-height:42px;padding:9px 12px;border-radius:9px}
+.library-tabs {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+.library-tabs:has([data-slot=tabs-trigger]:only-child) {grid-template-columns:1fr;max-width:180px}
+.pill,.request-status,.key-badge {font-size:var(--type-caption);font-weight:500;line-height:1.5;padding:4px 8px;border-radius:6px}
+.church-context {padding:12px max(4%,calc((100vw - 1200px)/2));gap:16px;background:#eef3ed;border-bottom:1px solid var(--border)}
+.church-context strong {font-size:var(--type-label);font-weight:600}
+.church-context span {font-size:var(--type-caption);color:var(--muted-foreground)}
+.church-context-actions {gap:8px;align-items:center;flex-direction:row}
+.church-context .text-button {font-size:var(--type-label);min-height:40px;padding:8px 10px}
+.church-list,.church-member-list {gap:12px}
+.church-list small,.church-member-list small,.fixed-song-info small,.invite-list small,.request-card small {font-size:var(--type-caption);line-height:1.65;color:var(--muted-foreground)}
+.church-card-actions {gap:8px}
+.church-card-actions button,.church-member-list button {font-size:var(--type-label);min-height:44px}
+.church-list-toolbar {gap:12px;margin-bottom:20px}
+.church-trash-toggle {min-height:44px}
+.request-filters {gap:12px}
+.request-card {gap:12px}
+.request-card>p {font-size:var(--type-body)}
+.admin-entry {padding:var(--space-card);gap:16px}
+.admin-entry p {margin:8px 0 0}
+.empty-state {min-height:280px;padding:40px 24px}
+.empty-state h2,.request-empty h3 {font-size:var(--type-section);margin:16px 0 8px}
+.empty-state p {font-size:var(--type-body);line-height:1.7;margin-bottom:20px}
+.empty-icon {width:64px;height:64px;border-radius:18px;transform:none}
+.empty-icon svg {transform:none}
+.comment-actions {gap:12px;flex-wrap:wrap}
+.comment-author strong {font-size:var(--type-label);font-weight:600}
+.comment-author small,.comment-context,.comment-composer>small {font-size:var(--type-caption)}
+:is([data-slot=dialog-title],[data-slot=alert-dialog-title]) {font-size:var(--type-section);font-weight:600;line-height:1.45;letter-spacing:-.025em}
+:is([data-slot=dialog-description],[data-slot=alert-dialog-description]) {font-size:var(--type-body);line-height:1.65;color:var(--muted-foreground)}
+[data-slot=dialog-content]:not(.editor-dialog):not(.studio-dialog):not(.rehearsal-reader),[data-slot=alert-dialog-content] {border-radius:var(--surface-radius);gap:20px}
+/* Compact editing controls use the same type scale without changing paper dimensions. */
+.editor-top,.studio-header {padding:16px 24px;gap:12px}
+.editor-top [data-slot=dialog-title],.studio-header [data-slot=dialog-title] {font-size:var(--type-section)}
+.editor-statusbar {font-size:var(--type-caption)}
+.editor-statusbar .text-button {font-size:var(--type-label);min-height:36px;padding:4px}
+.editor-info {gap:24px;padding:24px}
+.section-intro {margin-bottom:20px}
+.song-editor-fields .field,.cue-edit .field {font-size:var(--type-label)}
+.editor-tab-list [data-slot=tabs-trigger],.mobile-editor-nav button,.editor-song-item>button,.fixed-import-button,.score-modes button,.marker-type-buttons button,.section-buttons button,.form-token,.cue-presets button,.score-controls-toggle {font-size:var(--type-label);font-weight:500;line-height:1.4}
+.form-builder>p,.upload-box small,.tool-hint,.privacy-note {font-size:var(--type-caption);line-height:1.6}
+.form-builder h3 {font-size:var(--type-title)}
+.score-mode-hint,.render-status,.score-focus-header small {font-size:var(--type-caption);line-height:1.5}
+.score-adjustment {font-size:var(--type-label)}
+.score-controls-toggle {min-height:40px}
+.score-modebar select {font-size:var(--type-body)}
+@media(max-width:1000px) {
+  :root {--type-page:1.5rem;--space-card:20px}
+  .app-header {height:68px;padding:0 16px}
+  .app-navigation {height:calc(68px + env(safe-area-inset-bottom))!important;gap:0!important}
+  .app-navigation [data-slot=tabs-trigger] {height:64px;min-width:0;padding:8px 2px;font-size:var(--type-caption);gap:4px}
+  .workspace {width:calc(100% - 32px);padding:24px 0 calc(88px + env(safe-area-inset-bottom))}
+  .page-heading {gap:12px;margin-bottom:24px}
+  .page-heading>div:first-child {min-width:160px}
+  .page-heading p {font-size:var(--type-label);max-width:none}
+  .heading-actions .primary {padding:11px 14px;font-size:var(--type-label)}
+  .church-context {padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px}
+  .church-context>div:first-child {flex:1 1 100%}
+  .church-context-actions {width:100%;justify-content:flex-start;flex-direction:row;gap:8px}
+  .church-context .text-button {font-size:var(--type-label);min-height:36px;padding:6px 0;margin-right:12px}
+  .church-list article,.church-member-list article {gap:16px}
+  .church-card-actions {justify-content:flex-start}
+  .church-card-actions .secondary {flex:1}
+  .platform-tabs {margin-bottom:20px}
+  .library-tabs [data-slot=tabs-trigger] {padding:9px 5px}
+  .weekly-tools {gap:8px}
+  .weekly-tools>button {flex:1 1 200px}
+  .week-aside {gap:16px}
+  .editor-top,.studio-header {padding:10px 12px;min-height:60px;gap:8px}
+  .editor-top [data-slot=dialog-title],.studio-header [data-slot=dialog-title] {font-size:var(--type-title)}
+  .editor-top .compact,.studio-header .compact {padding:9px 10px;font-size:var(--type-label)}
+  .editor-tab-list {min-height:42px;height:auto;margin:8px 12px}
+  .editor-tab-list [data-slot=tabs-trigger] {font-size:var(--type-label);padding:8px;min-height:38px}
+  .editor-statusbar>span {font-size:var(--type-caption)}
+  .editor-statusbar .text-button {font-size:var(--type-caption)}
+  .editor-info {padding:20px 16px;gap:20px}
+  .song-editor-fields {padding:20px 16px}
+  .song-import-actions {gap:8px;flex-wrap:wrap}
+  .song-import-actions .fixed-import-button {font-size:var(--type-label);min-height:40px;padding:8px 10px}
+  .mobile-editor-nav button {font-size:var(--type-label);min-height:40px}
+  .score-focus-header .compact {min-height:40px}
+  .score-focus-header strong {font-size:var(--type-body)}
+  .preview-label .text-button {font-size:var(--type-label);min-height:36px;padding:4px}
+  .score-modes button {font-size:var(--type-label);min-height:38px}
+  .marker-type-buttons button {font-size:var(--type-label);min-height:40px}
+  .request-dialog {padding:20px!important}
+}
+@media(max-width:380px) {
+  .church-context-actions {gap:4px}
+  .church-context .text-button {font-size:var(--type-caption);margin-right:8px}
+  .church-list-toolbar .platform-search {flex-basis:100%}
+  .church-trash-toggle {width:100%;justify-content:center}
+  .field-row {grid-template-columns:minmax(0,1fr);gap:0}
+  .editor-top [data-slot=dialog-title] {font-size:var(--type-body)}
+}
