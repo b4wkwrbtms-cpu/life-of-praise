@@ -122,6 +122,14 @@ textarea {padding:12px}
 .score-adjustment {font-size:var(--type-label)}
 .score-controls-toggle {min-height:40px}
 .score-modebar select {font-size:var(--type-body)}
+.workspace-support {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:36px;padding-top:24px;border-top:1px solid var(--border)}
+.support-link {display:flex;align-items:center;gap:12px;min-width:0;min-height:64px;padding:12px 16px;text-align:left;background:#edf3ee;border:1px solid #d6e2d8;border-radius:var(--surface-radius);color:var(--primary);font-size:var(--type-label);font-weight:500;line-height:1.5;word-break:keep-all;overflow-wrap:anywhere}
+.support-icon {display:grid;place-items:center;width:34px;height:34px;flex-shrink:0;background:#fff;border-radius:10px;color:var(--primary)}
+.support-link:hover,.support-link[aria-current=page] {background:#e2ece4;border-color:#b9cdbf}
+.support-link:focus-visible {outline:2px solid var(--ring);outline-offset:3px}
+@media(max-width:600px) {
+  .workspace-support {grid-template-columns:minmax(0,1fr);gap:10px;margin-top:28px;padding-top:20px}
+}
 @media(max-width:1000px) {
   :root {--type-page:1.5rem;--space-card:20px}
   .app-header {height:68px;padding:0 16px}
