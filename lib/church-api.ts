@@ -25,16 +25,27 @@ export async function accountApi(req:Request,path:string[],user:ChatGPTUser,read
   ]);return churchResponse(churchId);
  }
  if(path[0]!=='churches')return null;
- if(path.length===1&&req.method==='GET')return json(await churchList(user));
+ if(path.length===1&&req.method==='GET')return json(await churchList(user,new URL(req.url).searchParams.get('trash')==='1'));
  if(path.length===1&&req.method==='POST')fail(403,'인도자 초대 코드로 개설을 신청하고 총관리자의 승인을 받아 주세요.');
  if(path[1]==='select'&&req.method==='POST'){
   const v=z.object({id:z.string().min(1).max(100)}).parse(await read());const list=await churchList(user);if(!list.some(c=>c.id===v.id&&(c.active||owner)))fail(403,'이 교회에 접근할 권한이 없습니다.');return churchResponse(v.id);
+ }
+ if((path.length===2&&req.method==='DELETE')||(path.length===3&&path[2]==='restore'&&req.method==='POST')){
+  if(!owner)fail(403,'교회 삭제와 복원은 총관리자만 할 수 있습니다.');
+  const id=path[1],restoring=path.length===3;
+  const v=z.object({name:churchName,deletedAt:z.number().int().positive().optional()}).parse(await read());
+  if(restoring&&!v.deletedAt)fail(400,'삭제한 교회 목록을 새로고침해 주세요.');
+  const result=restoring
+   ?await db().prepare('UPDATE churches SET deleted_at=NULL,deleted_by=NULL,invite_hash=NULL WHERE id=? AND name=? AND deleted_at=?').bind(id,v.name,v.deletedAt!).run()
+   :await db().prepare('UPDATE churches SET deleted_at=?,deleted_by=?,invite_hash=NULL WHERE id=? AND name=? AND deleted_at IS NULL').bind(Date.now(),user.userId,id,v.name).run();
+  if(!result.meta.changes)fail(409,'교회 이름이나 상태가 변경되었습니다. 목록을 새로고침해 주세요.');
+  return json({ok:true});
  }
  if(path.length===2&&req.method==='PATCH'){
   const context=await churchContext(req,user,true),id=path[1];if(!owner&&(context.church?.id!==id||context.profile?.role!=='admin'))fail(403,'교회 설정 변경 권한이 없습니다.');
   const v=z.object({name:churchName.optional(),active:z.boolean().optional()}).parse(await read());if(v.active!==undefined&&!owner)fail(403,'전체 교회 운영 상태는 총관리자만 변경할 수 있습니다.');
   if(id===LEGACY_CHURCH&&v.active===false)fail(400,'기본 교회는 운영을 중지할 수 없습니다.');
-  const r=await db().prepare('UPDATE churches SET name=COALESCE(?,name),active=COALESCE(?,active) WHERE id=?').bind(v.name??null,v.active===undefined?null:Number(v.active),id).run();if(!r.meta.changes)fail(404,'교회를 찾을 수 없습니다.');return json({ok:true});
+  const r=await db().prepare('UPDATE churches SET name=COALESCE(?,name),active=COALESCE(?,active) WHERE id=? AND deleted_at IS NULL').bind(v.name??null,v.active===undefined?null:Number(v.active),id).run();if(!r.meta.changes)fail(404,'교회를 찾을 수 없습니다.');return json({ok:true});
  }
  return null;
 }

@@ -45,6 +45,13 @@ Site audience and application memberships are separate gates. The current Site a
 - Every resource API derives membership from authenticated identity and the selected church. Client headers, the selection cookie and file query parameters select context but never confer access. Immutable score URLs include church context so separate tabs remain independent.
 - The platform owner enters 전체 교회 관리 from the header or the top of 내 정보: church list, approval queue, leader invitations, and development requests. It has no direct church-creation or team-join controls. Other members use 내 정보 for invited joining/switching or an owner-code-protected leader application. Approved leaders manage their own team invitations.
 
+## Church deletion
+
+- Only the platform owner can delete or restore a church, including the default church. Deletion requires the current church name and moves the whole church into 교회 휴지통. It disappears from membership and operation lists; resource requests, selection and team invitations are denied. It is a recoverable deletion, not a permanent data purge.
+- Deletion records the actor/time and invalidates the team invitation. Restoration checks the deletion timestamp and returns the church, records, files, membership roles and prior operating state. Old team codes remain invalid; leaders issue a new code after restoring. Individual account identities and other churches remain unchanged.
+- The owner's console remains available when the selected church or every church is deleted. Only the optional account view can select another surviving church; resource requests never silently switch away from a deleted church.
+- Governance tests cover owner-only deletion/restoration, wrong names, stale confirmations, concurrent deletion, deleted resource access, restored data, revoked members and recovery after deleting all churches. Tests never delete production churches.
+
 ## Church development requests
 
 - 개발자에게 부탁해요 is available in each church. Members can submit categorized requests and reply; only that church and the platform owner can read them. The server derives the church and author from membership, never from submitted body fields.
