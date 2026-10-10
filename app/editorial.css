@@ -98,6 +98,39 @@
 
 /* This navigation is a sibling of the scrolling fieldset, never a sticky child. */
 .editor-pane-nav {display:none}
+.studio-form-entry {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 18px;flex:0 0 auto;background:#f5f6f0;border-bottom:1px solid #dce3d6;font-size:13px;color:#5f725f}
+.studio-form-entry button {white-space:nowrap;min-height:40px}
+.song-form-dialog[data-slot=dialog-content] {display:flex;flex-direction:column;gap:0;overflow:hidden;padding:0!important}
+.song-form-header {display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid #dce3d6;flex:0 0 auto;min-width:0}
+.song-form-header>div {flex:1;min-width:0}.song-form-header [data-slot=dialog-title] {font-size:20px;line-height:1.4}
+.song-form-header [data-slot=dialog-description] {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;margin:3px 0 0}
+.song-form-header button {flex-shrink:0;white-space:nowrap;min-height:44px}.song-form-header .icon-button {width:44px}
+.song-form-pane-nav {display:none;flex:0 0 auto;grid-template-columns:1fr 1fr;gap:6px;padding:7px 10px;background:#f8f8f3;border-bottom:1px solid #dce3d6}
+.song-form-pane-nav button {display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;border-radius:9px;font-size:14px;white-space:nowrap;color:#62745d}
+.song-form-pane-nav button[aria-pressed=true] {background:#315d48;color:#fff}
+.song-form-body {display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);flex:1;min-height:0;min-width:0;border:0;padding:0;margin:0;overflow:hidden}
+.song-form-fields {min-width:0;overflow:auto;padding:20px;overscroll-behavior:contain;border-right:1px solid #dce3d6}
+.song-form-help {font-size:13px;line-height:1.7;color:#60705e;margin:0 0 20px}
+.song-form-fields .form-token button {min-width:38px;min-height:38px}.song-form-fields .section-buttons button {min-height:44px}
+.song-form-score {display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;padding:8px;background:#f3f4ec}
+.song-form-page-controls {display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 6px 6px;flex:0 0 auto;font-size:13px}
+.song-form-page-controls>span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.song-form-page-controls .page-controls {flex-shrink:0}.song-form-page-controls button {width:40px;height:40px}
+.song-form-footer {display:flex;align-items:center;gap:16px;flex:0 0 auto;padding:6px 20px calc(6px + env(safe-area-inset-bottom));border-top:1px solid #dce3d6;background:#fff}
+.song-form-footer>span {flex:1;font-size:12px;color:#60705e}.song-form-footer button {min-height:44px;white-space:nowrap;font-size:13px}
+.song-form-loading {display:flex;align-items:center;justify-content:center;gap:10px;flex:1;padding:20px}
+.song-form-progress,.song-form-error {flex:0 0 auto;padding:10px 18px;font-size:13px;line-height:1.5;background:#f3f4ec}
+.song-form-error {background:#fbf2e6;color:#814d32;max-height:25dvh;overflow:auto}.song-form-error button {margin:6px 0 0 8px}
+@media(max-width:900px){
+ .song-form-pane-nav {display:grid}.song-form-header {padding:8px 10px;gap:6px}.song-form-header [data-slot=dialog-title] {font-size:17px}
+ .song-form-header .primary {padding:8px 10px;font-size:13px}.song-form-body {display:flex;flex-direction:column}
+ .song-form-fields {flex:1;border:0;padding:16px}.song-form-score {flex:1;padding:4px}
+ .song-form-body[data-pane=score]>.song-form-fields,.song-form-body[data-pane=details]>.song-form-score {display:none}
+ .song-form-footer {gap:10px;padding-left:10px;padding-right:10px}.song-form-footer>span {font-size:11px}
+ .song-form-error {max-height:20dvh}.song-form-score .score-viewport {padding:4px}
+ .song-form-dialog[data-compact-viewport] .song-form-footer,.song-form-dialog[data-compact-viewport] .song-form-header [data-slot=dialog-description],.song-form-dialog[data-compact-viewport] .score-mode-hint {display:none}
+ .song-form-dialog[data-compact-viewport] .song-form-page-controls {min-height:30px;padding-bottom:2px}.song-form-dialog[data-compact-viewport] .song-form-page-controls button {height:30px}
+}
 .reader-view-panel {flex:0 0 auto;min-width:0;background:#fafbf7;border-bottom:1px solid #d9e1d2}
 .score-view-selector {display:flex;align-items:center;gap:10px;padding:10px 16px;min-width:0;color:#304637}
 .score-view-selector>svg {flex-shrink:0}.score-view-selector label {display:flex;align-items:center;gap:12px;flex:1;min-width:0}

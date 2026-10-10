@@ -14,8 +14,8 @@ export function weekDownloadEntries(service:Service):DownloadEntry[]{
  return service.data.songs.flatMap((song,si)=>{
   if(!song.pages.length)throw new Error(`${song.title||'제목 없는 찬양'}에 악보가 없습니다.`);
   return song.pages.map((_,pi)=>{
-   if(!song.exports[pi])throw new Error(`${song.title} ${pi+1}페이지의 완성 악보가 없습니다. 인도자에게 다시 공개해 달라고 요청해 주세요.`);
-   return {songTitle:song.title,songNumber:si+1,pageNumber:pi+1,exportId:song.exports[pi],baseName:`${String(si+1).padStart(2,'0')}_${safeName(song.title,'찬양')}_p${String(pi+1).padStart(2,'0')}`};
+   if(!song.exports[pi]&&!song.renderOnRead)throw new Error(`${song.title} ${pi+1}페이지의 완성 악보가 없습니다. 인도자에게 다시 공개해 달라고 요청해 주세요.`);
+   return {songTitle:song.title,songNumber:si+1,pageNumber:pi+1,exportId:song.exports[pi]||'',baseName:`${String(si+1).padStart(2,'0')}_${safeName(song.title,'찬양')}_p${String(pi+1).padStart(2,'0')}`};
   });
  });
 }
@@ -48,7 +48,7 @@ export async function createScoreBundle(service:Service,load:(entry:DownloadEntr
   for(const [index,entry] of entries.entries()){
    abort(signal);options.onProgress?.({done:index,total:entries.length,title:`${entry.songNumber}. ${entry.songTitle} · ${entry.pageNumber}페이지`});
    // The same common image can have different annotations in two songs.
-   const cacheKey=options.cacheByPage?`${entry.songNumber}:${entry.pageNumber}`:entry.exportId;
+   const cacheKey=(options.cacheByPage||!entry.exportId)?`${entry.songNumber}:${entry.pageNumber}`:entry.exportId;
    let blob=cache.get(cacheKey);if(!blob){blob=await load(entry,signal);cache.set(cacheKey,blob)}
    abort(signal);totalBytes+=blob.size;
    if(totalBytes>(options.maxBytes??MAX_BUNDLE_BYTES))throw new Error('악보 전체 용량이 커서 한 번에 준비할 수 없습니다. 각 곡의 악보 저장 기능을 이용해 주세요.');

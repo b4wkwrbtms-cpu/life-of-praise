@@ -55,6 +55,10 @@ try{
  const fixed=await call('a','fixed-songs','POST',{song:score.songs[0],autoAdd:false},200,A);
  const ca=await call('a','comments','POST',{serviceId:sa.id,songId:'song',text:'가교회 전용 대화'},200,A);
  for(const path of [`services/${sa.id}/versions`,`services/${sa.id}/personal/song?version=1`,`comments?service=${sa.id}`])await call('b',path,'GET',undefined,404,B);
+ await call('b',`services/${sa.id}/songs/song/form`,'GET',undefined,404,B);
+ await call('b',`services/${sa.id}/songs/song/form`,'PATCH',{revision:2,version:1,patch:{}},404,B);
+ await call('candidate',`services/${sa.id}/songs/song/form`,'GET',undefined,404,B);
+ await call('candidate',`services/${sa.id}/songs/song/form`,'PATCH',{revision:2,version:1,patch:{}},404,B);
  await call('b','comments/'+ca.id,'PATCH',{text:'다른 교회 수정'},404,B);await call('b','comments/'+ca.id,'DELETE',undefined,404,B);
  await call('b',`services/${sa.id}`,'PUT',{revision:2,data:worship},404,B);await call('b',`services/${sa.id}`,'DELETE',{revision:2},404,B);await call('b',`services/${sa.id}/confirm`,'POST',{version:1},404,B);
  await call('b','fixed-songs/'+fixed.id,'PUT',{revision:1,song:bscore.songs[0],autoAdd:false},409,B);await call('b','fixed-songs/'+fixed.id,'PATCH',{revision:1,autoAdd:true},409,B);await call('b','fixed-songs/'+fixed.id,'DELETE',{revision:1},409,B);

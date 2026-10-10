@@ -26,7 +26,7 @@ export default function WeekDownload({service,profile,churchId,onClose}:{service
     const urls=new Map(weekDownloadEntries(service).map(entry=>[entry.exportId,fileUrl(entry.exportId)]));
     const result=await createScoreBundle(service,async(entry,signal)=>{
      const song=service.data.songs[entry.songNumber-1],page=song.pages[entry.pageNumber-1],notes=notesForPage(view,song,page.id);
-     if(!notes.length)return fetchScoreFile(urls.get(entry.exportId)!,signal);
+     if(!notes.length&&entry.exportId)return fetchScoreFile(urls.get(entry.exportId)!,signal);
      const canvas=document.createElement('canvas');
      try{await renderScore(canvas,page,song,notes,`${service.date} · ${song.title} · v${service.version} · ${scoreViewLabel(view)} · ${entry.pageNumber}/${song.pages.length}`);return await toBlob(canvas)}finally{canvas.width=0;canvas.height=0}
     },{signal:control.signal,cacheByPage:!!view.userId,viewLabel:scoreViewLabel(view),onProgress:p=>{if(alive)setProgress(p)}});

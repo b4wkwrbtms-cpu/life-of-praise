@@ -59,3 +59,11 @@ try{
  await assert.rejects(()=>fetchScoreFile('/file',new AbortController().signal),/시간이 길어/);
 }finally{globalThis.fetch=fetchOriginal;globalThis.setTimeout=timerOriginal}
 console.log('PASS: church-scoped authenticated fetch, missing file, expired login, offline, timeout and abort handling.');
+
+// A member form edit is rendered from the original score instead of an obsolete export.
+const updatedWeek={...service,data:{songs:[{...service.data.songs[0],exports:[],renderOnRead:true}]}};
+assert.deepEqual(weekDownloadEntries(updatedWeek).map(e=>e.exportId),['','']);
+const renderedPages=[];const dynamicBundle=await createScoreBundle(updatedWeek,async entry=>{renderedPages.push(entry.pageNumber);return new Blob([png],{type:'image/png'})});
+assert.deepEqual(renderedPages,[1,2],'Every freshly rendered page must be requested separately, not cached under an empty export ID');
+assert.equal(dynamicBundle.pageCount,2);assert.equal(Object.keys(unzipSync(new Uint8Array(await dynamicBundle.blob.arrayBuffer()))).length,2);
+console.log('PASS: newly edited song forms use dynamic page rendering in whole-week downloads without stale exports or page cache collisions.');

@@ -1,0 +1,71 @@
+import {createRequire} from 'node:module';
+import {dirname,resolve} from 'node:path';
+import {readFileSync,readdirSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {songFormPatch} from '../lib/song-form.ts';
+const require=createRequire(import.meta.url);
+const {Miniflare}=await import(require.resolve('miniflare',{paths:[dirname(require.resolve('wrangler/package.json'))]}));
+const root=resolve('dist/server'),paths=readdirSync(root,{recursive:true}).filter(p=>p.endsWith('.js')||p.endsWith('.mjs')).sort((a,b)=>a==='index.js'?-1:b==='index.js'?1:a.localeCompare(b));
+const mf=new Miniflare({modules:paths.map(p=>({type:'ESModule',path:resolve(root,p)})),modulesRoot:root,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['BUCKET'],bindings:{OWNER_EMAIL:'owner@example.test'}});
+let checks=0;
+const headers=who=>({'oai-authenticated-user-id':who,'oai-authenticated-user-email':who+'@example.test'});
+async function raw(who,path,method='GET',body){return mf.dispatchFetch('http://app.test/api/'+path,{method,headers:{...headers(who),...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined})}
+async function call(who,path,method='GET',body,status=200){const res=await raw(who,path,method,body),data=await res.json();checks++;assert.equal(res.status,status,JSON.stringify({path,data}));return data}
+async function upload(kind){const form=new FormData();form.append('file',new File([readFileSync('public/icon-192.png')],'score.png',{type:'image/png'}));const encoded=new Request('http://app.test',{method:'POST',body:form});const res=await mf.dispatchFetch('http://app.test/api/files?kind='+kind,{method:'POST',headers:{...headers('owner'),'content-type':encoded.headers.get('content-type')},body:await encoded.arrayBuffer()});assert.equal(res.status,200);return (await res.json()).id}
+try{
+ const db=await mf.getD1Database('DB');for(const file of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())for(const q of readFileSync('drizzle/'+file,'utf8').split('--> statement-breakpoint').map(s=>s.trim()).filter(Boolean))await db.prepare(q).run();
+ await call('owner','me','POST',{name:'인도자',position:'건반'});const {code}=await call('owner','invite','POST');
+ await call('drum','me','POST',{name:'드럼 팀원',position:'드럼',invite:code});await call('vocal','me','POST',{name:'보컬 팀원',position:'싱어',invite:code});
+ const raw1=await upload('raw'),raw2=await upload('raw'),exp1=await upload('export'),exp2=await upload('export');
+ const song={id:'song',title:'고정 곡 제목',key:'D',bpm:'72',form:[{id:'intro',type:'Intro'},{id:'verse',type:'V1'},{id:'chorus',type:'C'}],pages:[{id:raw1,width:192,height:192},{id:raw2,width:192,height:192}],exports:[exp1,exp2],layout:{x:.05,y:.02,width:.9,size:.022,margin:false},notes:'공통 메모 보존',transition:'연결 보존',parts:{드럼:'드럼 안내'},link:'https://youtu.be/example'};
+ const worship={title:'예배 제목 보존',date:'2026-10-11',passage:'시편 95',translation:'직접 입력',scripture:'테스트 본문',theme:'주제',rehearsal:'연습 시간',notice:'공개 공지',songs:[song,{...structuredClone(song),id:'other',title:'다른 찬양'}]};
+ const draft=await call('owner','services','POST',worship),id=draft.id,route=`services/${id}/songs/song/form`;
+ await call('drum',route,'GET',undefined,404);await call('owner',route,'GET',undefined,404);
+ await call('owner',`services/${id}/publish`,'POST',{revision:1,data:worship});
+ const original=await call('drum',route);assert.equal(original.version,1);assert.ok(!('draft' in original));
+ const personal={revision:0,notes:[{id:'cue',pageId:raw1,x:.2,y:.5,text:'내 메모',size:.025,color:'#315d48',sectionId:'verse'}],exports:[]};
+ await call('drum',`services/${id}/personal/song?version=1`,'PUT',personal);await call('vocal',`services/${id}/personal/song?version=1`,'PUT',{...personal,notes:[{...personal.notes[0],text:'보컬 메모'}]});
+ const patch=structuredClone(songFormPatch(original.data.songs[0]));patch.form.push({id:'repeat',type:'Cx2'},{id:'bridge',type:'Bridge x 2'});patch.pageLayouts[0].layout={...song.layout,x:.3,size:.05};patch.markers=[{id:'m1',pageId:raw1,type:'V1',x:.1,y:.3,size:.025}];
+ const request={version:1,revision:2,patch};
+ for(const forbidden of ['title','key','pages','exports','songs','notes','parts','link'])await call('drum',route,'PATCH',{...request,patch:{...patch,[forbidden]:[]}},400);
+ await call('drum',route,'PATCH',{...request,role:'admin'},400);
+ await call('drum',route,'PATCH',{...request,patch:{...patch,pageLayouts:[{pageId:'new-page'},patch.pageLayouts[1]]}},400);
+ await call('drum',route,'PATCH',{...request,patch:{...patch,form:[{id:'x',type:'C'},{id:'x',type:'V'}]}},400);
+ await call('drum',route,'PATCH',{...request,patch:{...patch,markers:[{...patch.markers[0],pageId:'foreign'}]}},400);
+ await call('drum',route,'PATCH',{...request,patch:{...patch,form:[]}},400);
+ await call('drum',`services/${id}/songs/missing/form`,'PATCH',request,404);
+ await call('drum',route,'POST',request,405);await call('drum',route,'DELETE',request,405);
+ await call('drum','services','POST',worship,403);await call('drum',`services/${id}`,'PUT',{revision:2,data:worship},403);await call('drum',`services/${id}`,'DELETE',{revision:2},403);await call('drum',`services/${id}/publish`,'POST',{revision:2,data:worship},403);
+ await call('drum','files?kind=raw','POST',{},403);await call('drum','files?kind=export','POST',{},403);
+ const updated=await call('drum',route,'PATCH',request);assert.equal(updated.version,2);assert.equal(updated.revision,3);assert.equal(updated.data.songs.length,2);
+ assert.deepEqual(updated.data.songs[0].form,patch.form);assert.deepEqual(updated.data.songs[0].markers,patch.markers);assert.deepEqual(updated.data.songs[0].pages[0].layout,patch.pageLayouts[0].layout);assert.equal(updated.data.songs[0].pages[1].layout,undefined);
+ for(const field of ['title','key','bpm','notes','transition','parts','link'])assert.deepEqual(updated.data.songs[0][field],original.data.songs[0][field],field+' must remain leader-owned');
+ assert.deepEqual(updated.data.songs[0].pages.map(({layout,...p})=>p),original.data.songs[0].pages);
+ assert.deepEqual(updated.data.songs[1],original.data.songs[1]);assert.deepEqual(updated.data.songs[0].exports,[]);assert.equal(updated.data.songs[0].renderOnRead,true);
+ assert.ok(updated.changes[0].includes('드럼 팀원'));assert.ok(!('draft' in updated));
+ const ownAfter=await call('drum',`services/${id}/personal/song?version=2`);assert.deepEqual(ownAfter.notes,personal.notes);assert.equal(ownAfter.basedVersion,1);
+ assert.equal((await call('drum',`services/${id}/score-views?version=2&user=vocal`)).songs.song.notes[0].text,'보컬 메모');
+ const ownerList=await call('owner','services');assert.equal(ownerList[0].hasDraft,false,'Member edit alone must not fabricate a private draft');
+ const unchanged=await call('vocal',route,'PATCH',{version:2,revision:3,patch:songFormPatch(updated.data.songs[0])});assert.equal(unchanged.version,2);
+ await call('vocal',route,'PATCH',request,409);
+ const history=await call('vocal',`services/${id}/versions`);assert.equal(history.length,2);assert.deepEqual(history[1].data,original.data,'Published history remains unchanged');
+ // A leader's unrelated private work survives; the published title and notice do not change.
+ const privateDraft=structuredClone(updated.data);privateDraft.notice='미공개 비밀 공지';privateDraft.songs[0].title='미공개 새 제목';privateDraft.songs.push({...song,id:'new-private',title:'미공개 곡'});
+ await call('owner',`services/${id}`,'PUT',{revision:3,data:privateDraft});
+ const latest=await call('vocal',route);assert.equal(latest.revision,4);assert.equal(latest.data.notice,'공개 공지');assert.ok(!JSON.stringify(latest).includes('미공개'));
+ const patch2=songFormPatch(latest.data.songs[0]);patch2.form=[...patch2.form,{id:'outro',type:'Outro'}];
+ const again=await call('vocal',route,'PATCH',{version:2,revision:4,patch:patch2});assert.equal(again.version,3);assert.equal(again.data.songs.length,2);
+ const ownerAfter=(await call('owner','services'))[0];assert.equal(ownerAfter.draft.notice,'미공개 비밀 공지');assert.equal(ownerAfter.draft.songs[0].title,'미공개 새 제목');assert.equal(ownerAfter.draft.songs.length,3);assert.deepEqual(ownerAfter.draft.songs[0].form,patch2.form);
+ const conflicting=structuredClone(ownerAfter.draft);conflicting.songs[0].form=[{id:'leader',type:'Bridge'}];await call('owner',`services/${id}`,'PUT',{revision:5,data:conflicting});
+ await call('drum',route,'PATCH',{version:3,revision:6,patch},409);assert.equal((await call('drum',`services/${id}/versions`)).length,3);
+ await call('owner',`services/${id}/discard-draft`,'POST',{revision:6});
+ const raceA={version:3,revision:7,patch:{...patch2,form:[...patch2.form,{id:'race-a',type:'C'}]}};
+ const raceB={version:3,revision:7,patch:{...patch2,form:[...patch2.form,{id:'race-b',type:'V2'}]}};
+ const race=await Promise.all([raw('drum',route,'PATCH',raceA),raw('vocal',route,'PATCH',raceB)]);assert.deepEqual(race.map(r=>r.status).sort(),[200,409],'Only one concurrent write may create the next version');
+ const final=await call('drum',route);assert.equal(final.version,4);assert.equal(final.revision,8);assert.equal((await call('drum',`services/${id}/versions`)).length,4);
+ await call('owner',`services/${id}/publish`,'POST',{revision:7,data:worship},409,'A stale leader cannot overwrite the member edit');
+ assert.deepEqual((await call('drum',`services/${id}/personal/song?version=4`)).notes,personal.notes);
+ await call('owner','team','PATCH',{id:'drum',active:false});await call('drum',route,'GET',undefined,403);await call('drum',route,'PATCH',{version:4,revision:8,patch},403);
+ await call('owner',`services/${id}`,'DELETE',{revision:8});await call('vocal',route,'GET',undefined,404);
+ console.log(`PASS: ${checks} song-form API checks; scoped member editing, immutable songs/files, draft isolation, history, personal-note preservation, stale/concurrent writes, revoked and deleted access.`);
+}finally{await mf.dispose()}
