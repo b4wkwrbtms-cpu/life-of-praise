@@ -66,10 +66,33 @@ try{
  const comment=await upload('candidate',A,'comment'),personal=await upload('candidate',A,'personal');
  await call('candidate','comments','POST',{serviceId:sb.id,text:'잘못된 첨부',attachment:comment},400,B);
  await call('candidate',`services/${sb.id}/personal/song?version=1`,'PUT',{revision:0,notes:[],exports:[personal]},400,B);
+ // v25: the same author belongs to two churches, but their score annotations stay scoped.
+ const aNote={id:'cue-a',pageId:raw,x:.2,y:.2,text:'가교회 보컬 메모',size:.025,color:'#315d48'};
+ const bNote={...aNote,id:'cue-b',pageId:bscore.songs[0].pages[0].id,text:'나교회 드럼 메모'};
+ await call('candidate',`services/${sa.id}/personal/song?version=1`,'PUT',{revision:0,notes:[aNote],exports:[personal]},200,A);
+ await call('candidate',`services/${sb.id}/personal/song?version=1`,'PUT',{revision:0,notes:[bNote],exports:[]},200,B);
+ const aView=await call('a',`services/${sa.id}/score-views?version=1&user=candidate`,'GET',undefined,200,A);
+ const bView=await call('b',`services/${sb.id}/score-views?version=1&user=candidate`,'GET',undefined,200,B);
+ assert.equal(aView.position,'싱어');assert.equal(bView.position,'드럼');
+ assert.deepEqual(aView.songs.song.notes,[aNote]);assert.deepEqual(bView.songs.song.notes,[bNote]);
+ assert.ok(!JSON.stringify(aView).includes(personal),'Personal exported images stay private');
+ await call('b',`services/${sa.id}/score-views?version=1&user=candidate`,'GET',undefined,404,B);
+ await call('candidate',`services/${sa.id}/score-views?version=1`,'GET',undefined,404,B);
+ await call('a',`services/${sa.id}/score-views?version=1&user=b`,'GET',undefined,404,A);
+ await call('a',`services/${sa.id}/score-views?version=1&user=candidate`,'PUT',{notes:[]},405,A);
+ await call('a',`services/${sa.id}/personal/song?version=1&user=candidate`,'PUT',{revision:1,notes:[]},403,A);
+ await image('a',personal,A,404);
+ await db.prepare("UPDATE profiles SET active=0 WHERE id='candidate'").run();
+ await call('a',`services/${sa.id}/score-views?version=1&user=candidate`,'GET',undefined,404,A);
+ await db.prepare("UPDATE profiles SET active=1 WHERE id='candidate'").run();
  await call('a',`services/${sa.id}`,'DELETE',{revision:2},200,A);await call('b',`services/${sa.id}/restore`,'POST',{revision:3},409,B);await call('b',`services/${sa.id}/purge`,'DELETE',{revision:3},404,B);
  assert.equal((await call('a','services?trash=1','GET',undefined,200,A))[0].id,sa.id);await call('a',`services/${sa.id}/restore`,'POST',{revision:3},200,A);
  // Removing access in A leaves the same user's B membership intact.
  await call('a','team','PATCH',{id:'candidate',active:false},200,A);await call('candidate','services','GET',undefined,403,A);assert.equal((await call('candidate','services','GET',undefined,200,B)).length,1);
+ await call('a',`services/${sa.id}/score-views?version=1&user=candidate`,'GET',undefined,404,A);
+ await call('candidate',`services/${sa.id}/score-views?version=1`,'GET',undefined,403,A);
+ assert.ok(!(await call('a',`services/${sa.id}/score-views?version=1`,'GET',undefined,200,A)).members.some(m=>m.id==='candidate'));
+ assert.equal((await call('b',`services/${sb.id}/score-views?version=1&user=candidate`,'GET',undefined,200,B)).songs.song.notes[0].text,'나교회 드럼 메모');
  await call('candidate','me','POST',{name:'재가입 시도',position:'인도자',invite:ia},403);await call('a','team','PATCH',{id:'candidate',active:true},200,A);
  await call('a','team','PATCH',{id:'a',role:'member'},403,A);await call('owner','team','PATCH',{id:'b',active:false},400,B);
  await call('owner','churches/'+B,'PATCH',{active:false});await call('b','services','GET',undefined,403,B);await call('b','churches/select','POST',{id:B},403);assert.equal((await call('owner','services','GET',undefined,200,B)).length,1);

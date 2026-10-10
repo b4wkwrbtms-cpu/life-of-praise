@@ -40,6 +40,32 @@ try{
  assert.equal((await call('guitar',`services/${service.id}/personal/song-1?version=1`)).notes.length,0);
  assert.equal((await call('drum',`services/${service.id}/personal/song-1?version=1`)).notes[0].text,'브레이크');
  await call('drum',`services/${service.id}/personal/song-1?version=1`,'PUT',personal,409);
+ // v25: published setlist views select one author's annotations, never personal exports.
+ users.drum2=['test-drum-2','drum2@example.test'];
+ await call('drum2','me','POST',{name:'두 번째 드럼',position:'드럼',invite:code});
+ const otherNote={...personal,notes:[{...personal.notes[0],id:'d2',text:'두 번째 드럼만의 필인'}]};
+ const privateImage=await upload('drum','personal');
+ await call('drum',`services/${service.id}/personal/song-1?version=1`,'PUT',{...personal,revision:1,exports:[privateImage]});
+ await call('drum2',`services/${service.id}/personal/song-1?version=1`,'PUT',otherNote);
+ const ownView=await call('drum',`services/${service.id}/score-views?version=1`);
+ assert.equal(ownView.userId,'test-drum');assert.equal(ownView.own,true);
+ assert.equal(ownView.songs['song-1'].notes[0].text,'브레이크');
+ assert.equal(ownView.members.filter(m=>m.position==='드럼').length,2);
+ const readOther=await call('guitar',`services/${service.id}/score-views?version=1&user=test-drum`);
+ assert.equal(readOther.own,false);assert.equal(readOther.songs['song-1'].notes[0].text,'브레이크');
+ assert.ok(!JSON.stringify(readOther).includes(privateImage),'Private image IDs are not exposed');
+ assert.ok(!('exports' in readOther.songs['song-1']));
+ assert.equal((await call('drum',`services/${service.id}/score-views?version=1&user=test-drum-2`)).songs['song-1'].notes[0].text,'두 번째 드럼만의 필인');
+ const commonView=await call('drum',`services/${service.id}/score-views?version=1&user=common`);
+ assert.equal(commonView.userId,null);assert.deepEqual(commonView.songs,{});
+ assert.deepEqual((await call('guitar',`services/${service.id}/score-views?version=1`)).songs,{});
+ await call('guitar',`services/${service.id}/score-views?version=1&user=test-drum`,'PUT',otherNote,405);
+ await call('guitar',`services/${service.id}/personal/song-1?version=1&user=test-drum`,'PUT',otherNote,403);
+ assert.equal((await call('drum',`services/${service.id}/personal/song-1?version=1`)).revision,2);
+ await call('guitar',`files/${privateImage}`,'GET',undefined,404);
+ for(const version of ['0','-1','1.5','abc'])await call('drum',`services/${service.id}/score-views?version=${version}`,'GET',undefined,400);
+ await call('drum',`services/${service.id}/score-views?version=2`,'GET',undefined,404);
+ await call('drum',`services/${service.id}/score-views?version=1&user=unknown`,'GET',undefined,404);
  const {id:comment}=await call('drum','comments','POST',{serviceId:service.id,songId:'song-1',text:'후렴 진입 질문',parentId:'',attachment:''});
  await call('guitar','comments/'+comment,'PATCH',{text:'타인 수정 시도'},403);
  assert.equal((await call('guitar','comments?service='+service.id))[0].position,'드럼');
@@ -53,6 +79,12 @@ try{
  assert.equal(history[0].data.songs[0].pages[0].layout.x,.2);assert.equal(history[0].data.songs[0].pages[1].layout.x,.06);assert.equal(history[0].data.songs[0].pages[0].layout.size,.035);assert.equal(history[0].data.songs[0].pages[1].layout.size,.018);assert.equal(history[1].data.songs[0].pages[0].layout,undefined,'Historic page layout is not overwritten');
  assert.ok(history[0].data.songs[0].form.some(f=>f.type==='Cx2'));assert.ok(history[0].data.songs[0].form.some(f=>f.type==='Bridge x 2'));
  const migrated=await call('drum',`services/${service.id}/personal/song-1?version=2`);assert.equal(migrated.reviewed,false);assert.equal(migrated.notes.length,1);assert.equal(migrated.basedVersion,1);
+ const carried=await call('guitar',`services/${service.id}/score-views?version=2&user=test-drum`);
+ assert.equal(carried.songs['song-1'].basedVersion,1);assert.equal(carried.songs['song-1'].notes[0].text,'브레이크');
+ await call('drum',`services/${service.id}/personal/song-1?version=2`,'PUT',{revision:0,notes:[],exports:[]});
+ assert.deepEqual((await call('guitar',`services/${service.id}/score-views?version=2&user=test-drum`)).songs['song-1'].notes,[],'Deleting current-version notes must not resurrect older ones');
+ assert.equal((await call('guitar',`services/${service.id}/score-views?version=1&user=test-drum`)).songs['song-1'].notes[0].text,'브레이크','Old published version keeps its own annotations');
+ console.log('PASS: personal full-setlist API defaults, same-session authors, read-only sharing, private image isolation, version carryover and explicit note deletion.');
  await call('drum',`services/${service.id}/confirm`,'POST',{version:1},409);
  // Library cleanup preserves published snapshots and enforces owner-only revisions.
  await call('drum','services?trash=1','GET',undefined,403);
@@ -77,6 +109,7 @@ try{
  assert.equal((await call('drum',`services/${service.id}/versions`)).length,2);
  assert.equal((await call('owner','services?trash=1')).length,0);
  const emptyDraft=await call('owner','services','POST',worship);
+ await call('owner',`services/${emptyDraft.id}/score-views?version=1`,'GET',undefined,404);
  await call('owner',`services/${emptyDraft.id}`,'DELETE',{revision:1});
  assert.equal((await call('owner','services')).length,1);
  // Fixed songs are standalone snapshots, never live references into past weeks.

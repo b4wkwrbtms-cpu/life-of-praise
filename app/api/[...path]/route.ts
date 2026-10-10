@@ -4,6 +4,7 @@ import {accountApi,teamApi} from '@/lib/church-api';
 import {platformApi} from '@/lib/platform-api';
 import {developerApi} from '@/lib/developer-requests';
 import {purgeService} from '@/lib/purge-service';
+import {scoreViewApi} from '@/lib/score-view-api';
 import {ApiError,admin,bindings,changes,db,digest,fail,getService,identity,isOwner,json,member,profileSchema,worshipSchema,songSchema,validateSongFiles} from '@/lib/server';
 import type {Profile,Worship} from '@/lib/types';
 export const dynamic='force-dynamic';
@@ -51,6 +52,7 @@ if(path[0]==='services'){
  return json(rows.results.map(r=>({id:r.id,title:r.title,date:r.date,data:JSON.parse(r.published||r.draft),...(p.role==='admin'?{draft:JSON.parse(r.draft),hasDraft:!!r.published&&r.draft!==r.published}:{}),deleted:!!r.deleted,version:r.version,revision:r.revision,published:!!r.published,finalized:!!r.finalized,updated:r.updated,changes:JSON.parse(r.changes),seen:r.seen})));}
  if(path.length===1&&method==='POST'){admin(p);const d=worshipSchema.parse(await read(req));await validateSongFiles(d.songs,p);const id=crypto.randomUUID();await db().prepare('INSERT INTO services (id,church_id,title,date,draft,version,revision,finalized,updated,changes) VALUES (?,?,?,?,?,0,1,0,?,?)').bind(id,p.churchId,d.title,d.date,JSON.stringify(d),Date.now(),'[]').run();return json({id,revision:1});}
  const id=path[1];if(!id)fail(404,'경로가 없습니다.');
+ if(path.length===3&&path[2]==='score-views')return await scoreViewApi(req,id,p);
  if(path.length===3&&path[2]==='purge'&&method==='DELETE'){admin(p);const v=z.object({revision:z.number().int().min(1)}).parse(await read(req));return json(await purgeService(id,v.revision,p.churchId!));}
  if(path[2]==='restore'&&method==='POST'){admin(p);const v=z.object({revision:z.number().int()}).parse(await read(req));const r=await db().prepare('UPDATE services SET deleted=0,revision=revision+1,updated=? WHERE id=? AND deleted=1 AND revision=? AND church_id=?').bind(Date.now(),id,v.revision,p.churchId).run();if(!r.meta.changes)fail(409,'목록이 변경되었습니다. 휴지통을 새로고침해 주세요.');return json({ok:true});}
  const {row,data}=await getService(id,p);
@@ -68,6 +70,7 @@ if(path[0]==='services'){
  }
  if(path.length===2&&method==='PUT'){admin(p);const v=z.object({revision:z.number().int(),data:worshipSchema}).parse(await read(req));const d=v.data;await validateSongFiles(d.songs,p);const r=await db().prepare('UPDATE services SET draft=?,title=CASE WHEN published IS NULL THEN ? ELSE title END,date=CASE WHEN published IS NULL THEN ? ELSE date END,revision=revision+1,updated=? WHERE id=? AND revision=? AND deleted=0').bind(JSON.stringify(d),d.title,d.date,Date.now(),id,v.revision).run();if(!r.meta.changes)fail(409,'다른 창의 변경이 있습니다. 편집 내용을 복사한 뒤 다시 열어 주세요.');return json({revision:v.revision+1});}
  if(path[2]==='personal'){
+ if(url.searchParams.has('user')&&url.searchParams.get('user')!==p.id)fail(403,'다른 팀원의 연주 표시는 수정할 수 없습니다.');
  const songId=path[3];const version=Number(url.searchParams.get('version')||row.version);const source=await getService(id,p,version);if(!source.data.songs.some(s=>s.id===songId))fail(404,'해당 곡이 없습니다.');
  if(method==='GET'){const r=await db().prepare('SELECT data,revision,version FROM personal WHERE user_id=? AND service_id=? AND song_id=? AND version<=? ORDER BY version DESC LIMIT 1').bind(p.id,id,songId,version).first<any>();return json(r?{...JSON.parse(r.data),revision:r.version===version?r.revision:0,basedVersion:r.version,reviewed:r.version===version}: {notes:[],basedVersion:version,reviewed:true,revision:0,exports:[]});}
  if(method==='PUT'){const v=z.object({revision:z.number().int().min(0),notes:z.array(z.object({id:z.string().max(100),pageId:z.string().max(100),x:z.number().min(0).max(1),y:z.number().min(0).max(1),text:z.string().min(1).max(160),size:z.number().min(.008).max(.08),color:z.enum(['#315d48','#a84f2b','#315e9b','#242c28']),sectionId:z.string().optional()})).max(200),exports:z.array(z.string()).max(30)}).parse(await read(req));

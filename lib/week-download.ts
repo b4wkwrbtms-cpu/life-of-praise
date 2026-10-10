@@ -40,14 +40,16 @@ export async function fetchScoreFile(url:string,signal:AbortSignal):Promise<Blob
 
 // Store already-compressed images unchanged. Fetch one page at a time; never
 // offer a partial archive if a page fails or the user cancels.
-export async function createScoreBundle(service:Service,load:(entry:DownloadEntry,signal:AbortSignal)=>Promise<Blob>,options:{signal?:AbortSignal;onProgress?:(progress:DownloadProgress)=>void;maxBytes?:number}={}):Promise<ScoreBundle>{
+export async function createScoreBundle(service:Service,load:(entry:DownloadEntry,signal:AbortSignal)=>Promise<Blob>,options:{signal?:AbortSignal;onProgress?:(progress:DownloadProgress)=>void;maxBytes?:number;viewLabel?:string;cacheByPage?:boolean}={}):Promise<ScoreBundle>{
  const signal=options.signal||new AbortController().signal,entries=weekDownloadEntries(service);
  const chunks:BlobPart[]=[],files:File[]=[],cache=new Map<string,Blob>();let totalBytes=0,zipError:Error|null=null,finished=false;
  const zip=new Zip((error,data,final)=>{if(error){zipError=error;return;}chunks.push(new Uint8Array(data).buffer);if(final)finished=true});
  try{
   for(const [index,entry] of entries.entries()){
    abort(signal);options.onProgress?.({done:index,total:entries.length,title:`${entry.songNumber}. ${entry.songTitle} · ${entry.pageNumber}페이지`});
-   let blob=cache.get(entry.exportId);if(!blob){blob=await load(entry,signal);cache.set(entry.exportId,blob)}
+   // The same common image can have different annotations in two songs.
+   const cacheKey=options.cacheByPage?`${entry.songNumber}:${entry.pageNumber}`:entry.exportId;
+   let blob=cache.get(cacheKey);if(!blob){blob=await load(entry,signal);cache.set(cacheKey,blob)}
    abort(signal);totalBytes+=blob.size;
    if(totalBytes>(options.maxBytes??MAX_BUNDLE_BYTES))throw new Error('악보 전체 용량이 커서 한 번에 준비할 수 없습니다. 각 곡의 악보 저장 기능을 이용해 주세요.');
    const data=new Uint8Array(await blob.arrayBuffer());abort(signal);
@@ -61,6 +63,6 @@ export async function createScoreBundle(service:Service,load:(entry:DownloadEntr
    await new Promise<void>(resolve=>setTimeout(resolve,0));
   }
   abort(signal);zip.end();if(zipError)throw zipError;if(!finished)throw new Error('전체 악보를 묶지 못했습니다. 다시 시도해 주세요.');
-  return {blob:new Blob(chunks,{type:'application/zip'}),name:`${safeName(service.date,'예배')}_${safeName(service.title,'찬양')}_v${service.version}_전체악보.zip`,files,pageCount:entries.length,songCount:service.data.songs.length};
+  return {blob:new Blob(chunks,{type:'application/zip'}),name:`${safeName(service.date,'예배')}_${safeName(service.title,'찬양')}_v${service.version}${options.viewLabel?'_'+safeName(options.viewLabel,'악보'):''}_전체악보.zip`,files,pageCount:entries.length,songCount:service.data.songs.length};
  }catch(e){zip.terminate();throw e}finally{cache.clear()}
 }

@@ -64,3 +64,32 @@ const largeMarker=await renderScore(createCanvas(1,1),page,{...inlineSong,marker
 assert.equal(largeMarker.markerBoxes[0].h,150);
 await assert.rejects(()=>renderScore(createCanvas(1,1),{...page,layout:{...largeForm.layout,width:.1,size:.2,margin:true}},{...largeForm,form:Array.from({length:100},(_,i)=>({id:'huge'+i,type:'Bridge x 2'}))}),/너무 큽니다/);
 console.log('PASS: large Cx2 sizes, exact form hit boxes, 10% marker sizes, and bounded image memory');
+
+// Full setlist and ZIP use the same published form plus the selected author's notes.
+const {notesForPage}=await import('../lib/score-views.ts');
+const {createScoreBundle}=await import('../lib/week-download.ts');
+const {unzipSync}=await import('fflate');
+const scoreSong={...inlineSong,id:'session-song',title:'팀원 표시 검증',pages:[page],exports:['same-common-image']};
+const selectedView=(id,notes)=>({userId:id,version:2,songs:{'session-song':{notes,basedVersion:2}}});
+const drumView=selectedView('drum',[{...notes[0],id:'drum-cue',text:'DRUM FILL'}]);
+const vocalView=selectedView('vocal',[{...notes[0],id:'vocal-cue',text:'VOCAL HARMONY',y:.5}]);
+const drumCanvas=createCanvas(1,1),vocalCanvas=createCanvas(1,1),commonCanvas=createCanvas(1,1);
+const drumGeo=await renderScore(drumCanvas,page,scoreSong,notesForPage(drumView,scoreSong,page.id));
+const vocalGeo=await renderScore(vocalCanvas,page,scoreSong,notesForPage(vocalView,scoreSong,page.id));
+const commonGeo=await renderScore(commonCanvas,page,scoreSong,[]);
+assert.deepEqual(drumGeo.noteBoxes.map(b=>b.id),['drum-cue']);
+assert.deepEqual(vocalGeo.noteBoxes.map(b=>b.id),['vocal-cue']);
+assert.equal(commonGeo.noteBoxes.length,0);
+assert.deepEqual(drumGeo.markerBoxes,vocalGeo.markerBoxes);assert.deepEqual(drumGeo.markerBoxes,commonGeo.markerBoxes);
+assert.deepEqual(drumGeo.formBox,vocalGeo.formBox);
+const drumPNG=drumCanvas.toBuffer('image/png'),vocalPNG=vocalCanvas.toBuffer('image/png'),commonPNG=commonCanvas.toBuffer('image/png');
+assert.notDeepEqual(drumPNG,vocalPNG);assert.notDeepEqual(drumPNG,commonPNG);assert.notDeepEqual(vocalPNG,commonPNG);
+const renderWeek={id:'render-test',date:'2026-10-11',title:'표시 검증',version:2,published:true,data:{songs:[scoreSong,{...scoreSong,id:'repeat-song'}]}};
+let personalLoads=0;
+const renderedBundle=await createScoreBundle(renderWeek,async entry=>{personalLoads++;return new Blob([entry.songNumber===1?drumPNG:vocalPNG],{type:'image/png'})},{cacheByPage:true,viewLabel:'드럼 · 이름/파일'});
+assert.equal(personalLoads,2,'Reused common exports with different song annotations must render separately');
+assert.ok(renderedBundle.name.includes('드럼 · 이름 파일'));assert.ok(!renderedBundle.name.includes('/'));
+const renderedFiles=Object.values(unzipSync(new Uint8Array(await renderedBundle.blob.arrayBuffer())));
+assert.deepEqual(Buffer.from(renderedFiles[0]),drumPNG);assert.deepEqual(Buffer.from(renderedFiles[1]),vocalPNG);
+writeFileSync('.sites-runtime/qa/score-drum-v25.png',drumPNG);writeFileSync('.sites-runtime/qa/score-vocal-v25.png',vocalPNG);
+console.log('PASS: different authors paint distinct images without moving common forms; full ZIP retains each song’s annotations even when raw exports repeat.');
