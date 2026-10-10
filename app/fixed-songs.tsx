@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState,useRef} from 'react';
+import {useEffect,useState,useRef,useId} from 'react';
 import {Bookmark,Search,Trash2,Check,Plus} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -8,6 +8,7 @@ import {formText,cloneFixedSongs,type FixedSong,type Song} from '@/lib/types';
 import {toast} from 'sonner';
 
 export function FixedSongList({existing=[],remaining=30,onAdd,onChoose}:{existing?:string[];remaining?:number;onAdd?:(songs:Song[])=>void;onChoose?:()=>void}){
+ const choiceId=useId();
  const [items,setItems]=useState<FixedSong[]>([]),[picked,setPicked]=useState<string[]>([]),[q,setQ]=useState(''),[loading,setLoading]=useState(true),[error,setError]=useState(''),[remove,setRemove]=useState<FixedSong|null>(null),[busy,setBusy]=useState(false);
  const reload=async()=>{setLoading(true);setError('');try{setItems(await api('fixed-songs'))}catch(e){setError((e as Error).message)}finally{setLoading(false)}};
  useEffect(()=>{reload()},[]);
@@ -21,8 +22,8 @@ export function FixedSongList({existing=[],remaining=30,onAdd,onChoose}:{existin
    {loading?<p role="status">고정찬양을 불러오는 중…</p>:error?<div className="error-panel" role="alert">{error}<button className="secondary" onClick={reload}>다시 시도</button></div>:list.map(f=>{
     const added=existing.includes(f.id),checked=picked.includes(f.id);
     return <section className={'fixed-song-card '+(checked?'selected':'')} key={f.id}>
-     {onAdd&&<input type="checkbox" aria-label={f.title+' 불러오기 선택'} checked={checked} disabled={added||(!checked&&picked.length>=remaining)} onChange={e=>setPicked(ids=>e.target.checked?[...ids,f.id]:ids.filter(id=>id!==f.id))}/>}
-     <div className="fixed-song-info"><h3>{f.title||'제목 없는 찬양'} {f.data.key&&<span className="key-badge">{f.data.key}</span>}</h3><p>{formText(f.data)||'송폼 미지정'}</p><small>악보 {f.data.pages.length}페이지{added?' · 이 예배에 추가됨':''}</small></div>
+     {onAdd&&<input type="checkbox" id={choiceId+f.id} aria-label={f.title+' 불러오기 선택'} checked={checked} disabled={added||(!checked&&picked.length>=remaining)} onChange={e=>setPicked(ids=>e.target.checked?[...ids,f.id]:ids.filter(id=>id!==f.id))}/>}
+     <div className="fixed-song-info"><h3>{onAdd?<label htmlFor={choiceId+f.id}>{f.title||'제목 없는 찬양'} {f.data.key&&<span className="key-badge">{f.data.key}</span>}</label>:<>{f.title||'제목 없는 찬양'} {f.data.key&&<span className="key-badge">{f.data.key}</span>}</>}</h3><p>{formText(f.data)||'송폼 미지정'}</p><small>악보 {f.data.pages.length}페이지{added?' · 이 예배에 추가됨':''}</small></div>
      {!onAdd&&<button className="icon-button danger" aria-label={f.title+' 고정 목록에서 삭제'} disabled={busy} onClick={()=>setRemove(f)}><Trash2 size={18}/></button>}
     </section>;
    })}
