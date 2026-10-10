@@ -1,0 +1,184 @@
+/* Calm editorial surfaces; typography stays compact inside the score workbench. */
+:root {
+ --background:#f4f2ed;--foreground:#272c28;--card-foreground:#272c28;
+ --primary:#293f34;--secondary:#eeeee6;--secondary-foreground:#293f34;
+ --muted:#ecece5;--muted-foreground:#626b63;--border:#dedfd7;--input:#ced2c8;
+ --accent:#e9ece4;--accent-foreground:#293f34;--ring:#6f8274;
+ --surface-radius:16px;--control-radius:10px;
+ --font-editorial:Georgia,'Times New Roman','Noto Serif KR','AppleMyungjo',serif;
+}
+.app-header {height:84px;background:#faf9f6;border-bottom:1px solid var(--border);gap:20px}
+.brand {min-width:0;gap:10px}.brand>span:last-child {letter-spacing:-.055em;font-weight:650}
+.brand small {max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.02em}
+.brand-mark {background:#293f34;border-radius:50%;width:38px;height:38px}
+.brand-mark svg {width:25px;height:25px}
+.app-navigation {height:46px!important;gap:3px!important;padding:4px!important;border:1px solid #d9ddd3;border-radius:30px!important;background:#eeeee7!important}
+.app-navigation [data-slot=tabs-trigger] {height:36px;border:0!important;border-radius:24px;padding:0 15px;font-size:13px;gap:7px}
+.app-navigation [data-slot=tabs-trigger][data-state=active] {background:#293f34!important;color:white!important;box-shadow:none!important}
+.app-navigation [data-slot=tabs-trigger]::after {display:none}
+.church-context {padding-top:9px;padding-bottom:9px;background:#eeeee7}
+.church-context>div:first-child {display:flex;align-items:center;gap:12px;min-width:0;flex-wrap:wrap}
+.church-context strong {overflow-wrap:anywhere}.church-context span {font-size:12px}
+.workspace {max-width:1240px;padding-top:24px}
+.page-heading {padding:10px 0 22px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.page-heading h1 {font-size:clamp(28px,3vw,40px);letter-spacing:-.055em;font-weight:600}
+.page-heading .eyebrow {font-size:11px;letter-spacing:.15em}
+.panel,.word-panel,.empty-state {border:1px solid var(--border)}
+.panel-heading {padding:24px}.panel-heading h2 {font-size:24px;letter-spacing:-.04em}
+.panel-heading .eyebrow {font-size:11px;letter-spacing:.17em}
+.count-badge {border-radius:50%;background:#f0f0e8;color:#38483d;font-variant-numeric:tabular-nums}
+.song-row {padding:22px 0;gap:20px}.song-row:hover {background:#f8f8f3}
+.song-number {font:24px/1.4 var(--font-editorial);color:#7b8578;width:30px}
+.song-info h3 {font-size:18px;letter-spacing:-.025em}
+.song-form {color:#526453;line-height:1.75}
+.song-meta span {font-size:12px}.open-score {border:1px solid #dce1d7;border-radius:50%;width:38px;height:38px;display:grid;place-items:center;flex-shrink:0;color:#425647}
+.open-score svg:first-child {display:none}
+.word-panel {background:#293c32;color:#faf9f4;border:0;padding:28px}
+.word-panel .eyebrow,.word-panel .subtle,.word-panel .scripture,.word-panel .worship-intent,.word-panel .worship-intent span {color:#dce4d9}
+.word-panel h2 {font-size:26px;font-family:var(--font-editorial);font-weight:400;margin:22px 0 10px}
+.word-panel .scripture {font-size:16px;line-height:1.9}
+.word-panel .worship-intent {border-color:#536457}
+.word-panel summary {color:#faf9f4;min-height:44px;display:flex;align-items:center}
+.rehearsal-panel,.conversation-card {background:#eeeee5;border:1px solid #d9dfd2}
+.panel-footer {background:#fafaf6;border-color:var(--border)}
+.library-item {border-radius:14px;background:#fff;position:relative;border-left:3px solid #73806b}
+.library-title h2 {font-size:23px;letter-spacing:-.04em}
+.archive-songs {background:#f6f6f0;border-radius:10px;padding:8px 12px}
+.library-tabs,.church-mode-tabs,.platform-tabs,.library-import-tabs {background:#e9ebe2}
+.fixed-library-intro {background:#ebece3;border-color:#d9dece}
+.fixed-song-card {background:#fff}.fixed-song-card.selected {background:#edf2e9;border-color:#8fa18c}
+.profile-card,.church-team,.church-manager {background:#fff}
+.profile-card .avatar.big {background:#dfe5d6;color:#3d513f}
+.workspace-support {margin-top:40px;padding-top:24px;border-color:#d6d9ce}
+.workspace-support .support-link {background:#eeeee5;border:1px solid #d7ddcf;border-radius:12px;min-height:64px;padding:16px}
+.support-icon {background:#dfe5d7;color:#344e3c}
+.primary {background:#293f34;border-color:#293f34}.primary:hover {background:#1c3026}
+.secondary {border-color:#ced7c8;background:#fff;color:#314938}.secondary:hover {background:#edf1e8}
+
+.worship-hero {position:relative;isolation:isolate;overflow:hidden;border-radius:18px;background:#263b30;color:#fff;min-height:380px;display:flex;align-items:flex-end;padding:36px;margin-bottom:28px}
+.worship-hero-image,.worship-hero-shade {position:absolute;inset:0;z-index:-2;pointer-events:none}
+.worship-hero-image img {width:100%;height:100%;object-fit:cover;object-position:center 58%}
+.worship-hero-shade {z-index:-1;background:linear-gradient(90deg,#101b16b8 0%,#16261d5c 55%,#16261d16 100%),linear-gradient(0deg,#0b140fd4 0%,transparent 75%)}
+.worship-hero-masthead {position:absolute;top:9px;left:29px;right:29px;font:clamp(76px,12.5vw,160px)/1 var(--font-editorial);font-weight:400;letter-spacing:-.045em;opacity:.94;white-space:nowrap;pointer-events:none}
+.worship-hero-masthead span {color:#d6dfc6}
+.worship-hero-content {width:100%;min-width:0;display:flex;justify-content:space-between;align-items:flex-end;gap:28px;padding-top:145px}
+.worship-hero-content>div:first-child {min-width:0}
+.worship-hero-kicker {display:block;font-size:10px;letter-spacing:.15em;color:#e0e4d9;margin-bottom:12px}
+.worship-hero-kicker>span {letter-spacing:0;margin-left:12px;border-left:1px solid #c3ccbe88;padding-left:12px}
+.worship-hero h1 {font-size:clamp(29px,3.3vw,44px);font-weight:500;letter-spacing:-.055em;line-height:1.35;max-width:640px;color:#fff}
+.worship-hero-content>div>p {font-size:14px;line-height:1.65;color:#e4e7df;margin-top:10px;word-break:keep-all}
+.worship-hero-actions {display:flex;align-items:center;gap:10px;margin-top:23px}
+.hero-button {background:#f6f4ea;color:#273d30;display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:46px;padding:11px 20px;border-radius:30px;font-size:14px;font-weight:500;white-space:nowrap}
+.hero-button:hover {background:#fff}.hero-icon-button {display:grid;place-items:center;width:44px;height:44px;border:1px solid #d8e3d275;border-radius:50%;background:#263a2c66;color:white}
+.hero-icon-button:hover {background:#3d5644}
+.worship-hero-detail {flex:0 1 260px;border-top:1px solid #dfe5d180;padding-top:15px;text-align:right;min-width:0}
+.worship-hero-detail>span {display:block;font-size:11px;letter-spacing:.1em;color:#e1e6da}
+.worship-hero-detail>strong {display:block;font-size:22px;font-weight:400;margin:6px 0;word-break:keep-all;overflow-wrap:anywhere}
+.worship-hero-detail>small {display:block;color:#d9e0d2;font-size:13px}
+.week-section-heading {display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #d2d8cd;padding-bottom:12px;margin-bottom:20px;color:#687263;font-size:12px;letter-spacing:.03em}
+.week-toolbar {background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 16px;gap:14px}
+.week-toolbar>.picker {border:0;background:#f7f8f2;max-width:480px}
+.weekly-tools {margin:18px 0}.weekly-tools .primary,.weekly-tools .secondary {border-radius:30px}
+
+.entry-shell {display:block;max-width:1240px;padding:24px 24px 60px}
+.worship-hero-entry {min-height:520px;margin-bottom:0}
+.worship-hero-entry .worship-hero-content {padding-top:230px}
+.worship-hero-entry .worship-hero-masthead {font-size:clamp(110px,16vw,205px);top:10px}
+.entry-body {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;padding:60px 30px}
+.entry-card h2 {font-size:32px;line-height:1.4;letter-spacing:-.055em;margin-bottom:18px}
+#entry-title {scroll-margin-top:110px}
+.entry-kicker {font-size:12px;letter-spacing:.03em;margin-bottom:20px}
+.entry-preview {background:#e9ece2;border:1px solid #d7ddcf;border-radius:16px;padding:28px 24px;align-self:start;margin-top:24px}
+.entry-preview img {background:#f5f7ee;border-radius:12px}
+.entry-preview h2 {font-size:24px;font-weight:500;margin:24px 0 12px;letter-spacing:-.04em}
+.entry-feature-strip {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #d6dbcf;border-bottom:1px solid #d6dbcf}
+.entry-feature-strip article {padding:28px;border-right:1px solid #d6dbcf}.entry-feature-strip article:last-child {border:0}
+.entry-feature-strip article>span {display:block;font:18px var(--font-editorial);color:#78816f;margin-bottom:16px}
+.entry-feature-strip h3 {font-size:18px;font-weight:500;margin-bottom:10px}.entry-feature-strip p {font-size:14px;color:#63705e;line-height:1.7}
+
+/* This navigation is a sibling of the scrolling fieldset, never a sticky child. */
+.editor-pane-nav {display:none}
+.score-render-error {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.score-render-error>span {flex:1 1 180px}
+.editor-top,.score-focus-header {background:#fafbf7}
+.editor-info,.song-editor-fields {background:#fff}
+.editor-score-preview {background:#eef0e8}
+.score-workbench {border-color:#d1dacc}
+.score-adjustment>button {min-height:40px;width:36px}
+
+@media(min-width:1001px) and (max-width:1150px){
+ .app-header {gap:12px;padding:0 24px}.app-navigation [data-slot=tabs-trigger] {padding:0 10px}.brand small {max-width:165px}.header-profile .desktop-only {display:none}
+}
+@media(max-width:1000px){
+ .app-header {height:64px;padding:0 16px;gap:12px}
+ .brand>span:last-child {font-size:18px}.brand small {font-size:11px;max-width:210px}.brand-mark {width:34px;height:34px}
+ .header-profile .avatar {height:36px;width:36px;background:#e5e8dc}
+ .app-navigation {height:calc(64px + env(safe-area-inset-bottom))!important;border:0;border-top:1px solid #d9ddd2;border-radius:0!important;padding:3px 8px env(safe-area-inset-bottom)!important;background:#fafaf6!important;gap:2px!important}
+ .app-navigation [data-slot=tabs-trigger] {height:58px;padding:7px 2px;font-size:12px;border-radius:12px;gap:4px}
+ .app-navigation [data-slot=tabs-trigger][data-state=active] {background:#e7ede0!important;color:#2f4a36!important}
+ .church-context {padding:8px 16px}.church-context>div:first-child {flex-basis:auto;gap:8px}.church-context strong {font-size:12px}.church-context span {font-size:11px}
+ .workspace {width:calc(100% - 28px);padding-top:16px}
+ .page-heading {padding:8px 2px 18px;margin-bottom:20px}.page-heading h1 {font-size:28px}
+ .page-heading p {font-size:14px}.page-heading .eyebrow {font-size:10px}
+ .panel-heading {padding:20px}.panel-heading h2 {font-size:22px}
+ .song-list {padding:0 18px}.song-row {padding:20px 0;gap:12px}.song-number {font-size:21px;width:25px}.song-info h3 {font-size:17px}
+ .word-panel {padding:24px}.word-panel h2 {font-size:24px}
+ .worship-hero {min-height:270px;padding:24px;border-radius:14px;margin-bottom:20px}
+ .worship-hero-masthead {font-size:clamp(70px,15vw,135px);left:20px;top:9px}
+ .worship-hero-content {padding-top:88px;gap:16px}.worship-hero h1 {font-size:30px}
+ .worship-hero-detail {max-width:190px}.worship-hero-detail>strong {font-size:18px}
+ .worship-hero-actions {margin-top:18px}.worship-hero-kicker {font-size:9px;margin-bottom:7px}
+ .week-toolbar {padding:10px 12px}.week-toolbar>.picker {max-width:none}
+ .entry-shell {padding:16px 14px 40px}
+ .worship-hero-entry {min-height:400px}.worship-hero-entry .worship-hero-masthead {font-size:clamp(94px,17vw,165px)}
+ .worship-hero-entry .worship-hero-content {padding-top:170px}
+ .entry-body {gap:32px;padding:36px 8px}.entry-card h2 {font-size:28px}
+ .entry-feature-strip article {padding:22px 16px}.entry-feature-strip h3 {font-size:16px}
+ .editor-dialog[data-slot=dialog-content] {min-height:0;padding-left:env(safe-area-inset-left)!important;padding-right:env(safe-area-inset-right)!important}
+ .editor-dialog .editor-lock .editor-tabs {padding-bottom:0}
+ .editor-pane-nav {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;flex:0 0 auto;position:relative;z-index:6;padding:7px 10px calc(7px + env(safe-area-inset-bottom));border-top:1px solid #d5ddcf;background:#fafbf7;box-shadow:0 -3px 12px #253b2b08}
+ .editor-pane-nav button {display:flex;justify-content:center;align-items:center;gap:7px;min-width:0;min-height:44px;font-size:13px;font-weight:500;line-height:1.4;white-space:nowrap;word-break:keep-all;border:1px solid #d6dece;border-radius:9px;background:#fff;color:#596d51;padding:8px 6px}
+ .editor-pane-nav button[aria-pressed=true] {background:#293f34;border-color:#293f34;color:#fff}
+ .editor-pane-nav button:focus-visible {outline-offset:1px}
+ .editor-dialog.score-focus .score-focus-header {min-height:52px;padding:4px 10px;gap:8px}
+ .editor-dialog.score-focus .score-focus-header .icon-button {min-width:40px;width:40px;height:44px}
+ .editor-dialog.score-focus .score-focus-header strong {font-size:14px}
+ .editor-dialog .song-import-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .editor-dialog .song-import-actions .fixed-import-button {width:100%;padding:6px;gap:5px;font-size:11px;justify-content:center;min-height:36px}
+ .editor-dialog .song-import-actions svg {width:14px}
+ .editor-dialog .score-modebar {padding:5px;gap:4px}
+ .editor-dialog .score-modes button {font-size:13px;min-height:40px;padding:6px 4px}
+ .editor-dialog .score-modebar select {min-height:40px;width:96px;max-width:96px;font-size:16px}
+ .editor-dialog .score-controls-toggle {min-height:40px}
+ .editor-dialog .preview-label .text-button {min-height:40px}
+ .editor-dialog .score-viewport {scroll-padding:16px}
+ .editor-dialog .score-viewport {min-height:100px}
+ .editor-dialog[data-compact-viewport=true] .editor-statusbar,.editor-dialog[data-compact-viewport=true] .song-import-actions {display:none}
+ .editor-dialog[data-compact-viewport=true] .editor-tab-list {margin:2px 10px;min-height:34px;height:34px}
+ .editor-dialog[data-compact-viewport=true] .editor-top {min-height:48px;padding:4px 10px}
+ .editor-dialog[data-compact-viewport=true] .score-mode-hint {display:none}
+ .editor-dialog[data-compact-viewport=true] .score-controls {max-height:25%;padding:4px 8px}
+ .editor-dialog[data-compact-viewport=true] .score-workbench {overflow-y:auto;overscroll-behavior:contain}
+ .editor-dialog[data-compact-viewport=true] .score-viewport {flex:1 0 140px}
+ .editor-dialog[data-compact-viewport=true] .score-controls {flex:0 0 auto;max-height:none}
+}
+@media(max-width:650px){
+ .worship-hero-week {min-height:240px;padding:20px}
+ .worship-hero-week .worship-hero-masthead {font-size:clamp(66px,17vw,108px);left:16px;top:6px}
+ .worship-hero-week .worship-hero-content {padding-top:75px;display:block}
+ .worship-hero-week h1 {font-size:28px}.worship-hero-week .worship-hero-kicker>span {display:none}
+ .worship-hero-week .worship-hero-detail {display:none}
+ .worship-hero-content>div>p {font-size:13px;max-width:270px;line-height:1.7}
+ .worship-hero-actions {margin-top:14px}.hero-button {min-height:44px;padding:10px 16px;font-size:13px}
+ .week-section-heading {font-size:11px;margin-bottom:14px}
+ .entry-body {grid-template-columns:minmax(0,1fr);gap:28px;padding:32px 6px}
+ .worship-hero-entry {min-height:355px;padding:22px}
+ .worship-hero-entry .worship-hero-masthead {font-size:clamp(64px,20vw,128px);left:16px;top:16px}
+ .worship-hero-entry .worship-hero-content {padding-top:130px;display:block}
+ .worship-hero-entry h1 {font-size:30px;max-width:250px}.worship-hero-entry .worship-hero-detail {display:none}
+ .entry-card h2 {font-size:27px}.entry-preview {margin:0;padding:24px 18px}
+ .entry-feature-strip {grid-template-columns:minmax(0,1fr)}
+ .entry-feature-strip article {border-right:0;border-bottom:1px solid #d6dbcf;padding:20px 8px;display:grid;grid-template-columns:30px minmax(0,1fr);column-gap:12px}
+ .entry-feature-strip article>span {grid-row:span 2;margin:0}.entry-feature-strip h3 {margin-bottom:5px}.entry-feature-strip p {font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){.worship-hero *,.editor-pane-nav * {scroll-behavior:auto;transition:none}}

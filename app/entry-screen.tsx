@@ -4,15 +4,18 @@ import {ArrowRight,Check,Copy,Music2,ShieldCheck,Users,RefreshCw} from 'lucide-r
 import {entryReturnPath,signInPath,type Entry} from '@/lib/entry';
 import {copyText} from '@/lib/client';
 import {Mark} from './ui';
+import WorshipHero from './worship-hero';
 
 export default function EntryScreen({entry}:{entry:Entry}){
  const [role,setRole]=useState(entry.role),[code,setCode]=useState(entry.code),[copyStatus,setCopyStatus]=useState('');
  const leader=role==='leader',invited=!!entry.code,returnTo=entryReturnPath({role,code});
  const steps=leader?['초대 코드로 인도자 신청','총관리자의 교회·인도자 승인','악보 준비와 찬양팀 초대']:['이름과 담당 세션 입력','초대한 교회 찬양팀에 참여','이번 주 악보와 송폼 확인'];
  return <main className="entry-shell">
+  <WorshipHero kind="entry" title="하나의 마음으로, 찬양." description="말씀을 나누고, 찬양을 준비하고, 함께 예배합니다." actions={<a className="hero-button" href="#entry-title">우리 찬양팀 시작하기 <ArrowRight size={18}/></a>} detail={<><span>OUR WORSHIP, TOGETHER</span><p>준비의 순간부터<br/>예배의 자리까지.</p></>}/>
+  <div className="entry-body">
   <section className="entry-card" aria-labelledby="entry-title">
    <div className="entry-kicker"><Mark/><span>생명의 찬양 · 시작하기</span></div>
-   <h1 id="entry-title">함께 준비하는 예배,<br/>한곳에 모이는 찬양.</h1>
+   <h2 id="entry-title">함께 준비하는 예배,<br/>한곳에 모이는 찬양.</h2>
    <p className="entry-description">이번 주 말씀부터 악보와 송폼까지.<br/>우리 교회 찬양팀과 같은 화면에서 준비하세요.</p>
    {entry.issue?<div className="entry-message" role="alert"><p>{entry.issue}</p><a href="/" className="text-button">초대 정보 없이 시작하기 <ArrowRight size={16}/></a></div>:<>
     {invited?<div className="entry-invitation"><Check size={18}/><div><strong>{leader?'인도자 초대 링크':'찬양팀 초대 링크'}로 들어왔어요</strong><small>로그인 후 이 초대 코드로 이어집니다. 유효 여부는 가입 시 확인합니다.</small></div></div>:<fieldset className="entry-role"><legend>어떻게 이용하시나요?</legend><div>{(['team','leader'] as const).map(value=><label key={value} className={role===value?'selected':''}><input type="radio" name="entry-role" value={value} checked={role===value} onChange={()=>{setRole(value);setCode('');setCopyStatus('')}}/>{value==='team'?<Users size={20}/>:<ShieldCheck size={20}/>}<span><strong>{value==='team'?'찬양팀':'인도자'}</strong><small>{value==='team'?'초대한 교회에 참여':'새 교회 개설 신청'}</small></span></label>)}</div></fieldset>}
@@ -32,6 +35,8 @@ export default function EntryScreen({entry}:{entry:Entry}){
    <p>{leader?'도서관에서 곡을 고르고 송폼을 편집해 팀에 공개하세요.':'이번 주 악보를 보고 내 연주 표시를 더해 연습하세요.'}</p>
    <span className="entry-preview-caption">기능 안내용 예시 화면</span>
   </aside>
+  </div>
+  <section className="entry-feature-strip" aria-label="앱에서 할 수 있는 일"><article><span>01</span><h3>말씀을 함께 읽고</h3><p>예배 본문과 연습 안내를 한곳에서.</p></article><article><span>02</span><h3>찬양을 함께 준비하고</h3><p>악보와 송폼, 나만의 연주 표시까지.</p></article><article><span>03</span><h3>다음 예배로 이어가요</h3><p>도서관에서 필요한 곡만 골라 불러오기.</p></article></section>
  </main>;
 }
 

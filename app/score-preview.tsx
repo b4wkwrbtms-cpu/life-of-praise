@@ -9,13 +9,15 @@ type Gesture={pointer:number;kind:'marker'|'note'|'form'|'place';id:string;rect:
 const clamp=(v:number,max:number)=>Math.max(0,Math.min(max,v));
 export default function ScorePreview({page,song,notes=[],meta='',selected,onSelect,onMove,onMoveStart,onPlace,placing=false,zoom=100,selectedMarker,onMarkerSelect,onMarkerMove,onMarkerPlace,editing=false,onFormMove,formSelected=false}:Props){
  const ref=useRef<HTMLCanvasElement>(null),ghost=useRef<HTMLCanvasElement>(null),geo=useRef<Geometry|null>(null),gesture=useRef<Gesture|null>(null),frame=useRef(0);
- const [error,setError]=useState(''),[busy,setBusy]=useState(false),[aspect,setAspect]=useState<number>(),[hitGeometry,setHitGeometry]=useState<Geometry|null>(null);
+ const [error,setError]=useState(''),[failed,setFailed]=useState(false),[attempt,setAttempt]=useState(0),[busy,setBusy]=useState(false),[aspect,setAspect]=useState<number>(),[hitGeometry,setHitGeometry]=useState<Geometry|null>(null);
+ const renderedPage=useRef('');
  const current=useRef(0),interactive=editing||placing;
  const clear=()=>{gesture.current=null;cancelAnimationFrame(frame.current);if(ghost.current)ghost.current.style.display='none';};
  useEffect(()=>{clear();},[page?.id,interactive]);
  useEffect(()=>()=>clear(),[]);
  useEffect(()=>{
-  if(!page||!ref.current)return;let active=true;const ticket=++current.current;setBusy(true);
+  if(!page||!ref.current)return;let active=true;const ticket=++current.current;setBusy(true);setFailed(false);setError('');
+  if(renderedPage.current!==page.id){geo.current=null;setHitGeometry(null);setAspect(undefined);ref.current.getContext('2d')?.clearRect(0,0,ref.current.width,ref.current.height);}
   const c=document.createElement('canvas');
   renderScore(c,page,song,notes,meta).then(g=>{
    if(!active||ticket!==current.current||!ref.current)return;
@@ -23,13 +25,13 @@ export default function ScorePreview({page,song,notes=[],meta='',selected,onSele
    const ctx=target.getContext('2d')!;ctx.drawImage(c,0,0);
    const box=formSelected?g.formBox:selectedMarker?g.markerBoxes.find(b=>b.id===selectedMarker):g.noteBoxes.find(b=>b.id===selected);
    if(box&&interactive){ctx.strokeStyle='#c48748';ctx.lineWidth=3;ctx.setLineDash([6,5]);ctx.strokeRect(box.x-3,box.y-3,box.w+6,box.h+6);}
-   geo.current=g;setHitGeometry(g);setAspect(g.width/g.height);
+   renderedPage.current=page.id;geo.current=g;setHitGeometry(g);setAspect(g.width/g.height);
    setError(g.overflow?'송폼이 악보 아래로 벗어납니다. 위치를 올리거나 상단 여백을 켜 주세요.':'');setBusy(false);
-  }).catch(e=>{if(active){setError(e.message);setBusy(false)}});
+  }).catch(e=>{if(active){clear();geo.current=null;setHitGeometry(null);setFailed(true);setError(e.message);setBusy(false)}});
   return()=>{active=false};
- },[page?.id,JSON.stringify(page?.layout),JSON.stringify(song.layout),JSON.stringify(song.form),JSON.stringify(notes),meta,selected,JSON.stringify(song.markers),selectedMarker,formSelected,interactive]);
+ },[page?.id,JSON.stringify(page?.layout),JSON.stringify(song.layout),JSON.stringify(song.form),JSON.stringify(notes),meta,selected,JSON.stringify(song.markers),selectedMarker,formSelected,interactive,attempt]);
  const down=(e:React.PointerEvent<HTMLElement>,target?:{kind:'marker'|'note'|'form';box:Box})=>{
-  if(!interactive||!geo.current||e.button!==0||gesture.current||busy)return;
+  if(!interactive||!geo.current||e.button!==0||gesture.current||busy||failed||renderedPage.current!==page?.id)return;
   const g=geo.current,r=ref.current!.getBoundingClientRect();
   let box:Box|undefined,kind:Gesture['kind']='place';
   if(!placing){
@@ -70,5 +72,5 @@ export default function ScorePreview({page,song,notes=[],meta='',selected,onSele
   <canvas aria-label="송폼, 구간 표시와 연주 표시가 합성된 악보 미리보기" ref={ref} style={{cursor:placing?'crosshair':'default',touchAction:'pan-x pan-y pinch-zoom'}} onPointerDown={e=>down(e)} onPointerMove={move} onPointerUp={up} onPointerCancel={clear} onLostPointerCapture={clear}/>
   {targets.map(target=><button type="button" key={target.kind+target.box.id} className="score-drag-target" aria-label={target.label} style={{left:`calc(${target.box.x/hitGeometry!.width*100}% - 6px)`,top:`calc(${target.box.y/hitGeometry!.height*100}% - 6px)`,width:`calc(${target.box.w/hitGeometry!.width*100}% + 12px)`,height:`calc(${target.box.h/hitGeometry!.height*100}% + 12px)`}} onPointerDown={e=>down(e,target)} onPointerMove={move} onPointerUp={up} onPointerCancel={clear} onLostPointerCapture={clear} onClick={()=>{if(target.kind==='marker')onMarkerSelect?.(target.box.id);else if(target.kind==='note')onSelect?.(target.box.id)}}/>)}
   <canvas ref={ghost} className="score-drag-ghost" aria-hidden="true"/>
- </div></div>{busy&&<small className="render-status" role="status">미리보기 반영 중…</small>}{error&&<div className="score-render-error" role="alert">{error}</div>}</div>;
+ </div></div>{busy&&<small className="render-status" role="status">미리보기 반영 중…</small>}{error&&<div className="score-render-error" role="alert"><span>{error}</span>{failed&&<button type="button" className="secondary compact" onClick={()=>setAttempt(a=>a+1)}>다시 불러오기</button>}</div>}</div>;
 }

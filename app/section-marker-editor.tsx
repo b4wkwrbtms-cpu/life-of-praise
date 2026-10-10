@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {Hand,MapPin,Move,Trash2} from 'lucide-react';
 import {Switch} from '@/components/ui/switch';
 import {SECTIONS as FORM_SECTIONS,type Song,type ScorePage,type SectionMarker,type Layout} from '@/lib/types';
@@ -8,9 +8,10 @@ import {Picker} from './ui';
 import ScorePreview from './score-preview';
 import ScoreAdjustment from './score-adjustment';
 const SECTIONS=FORM_SECTIONS.filter(s=>s!=='Cx2'&&s!=='Bridge x 2');
-export default function SectionMarkerEditor({page,song,onChange,meta,disabled=false}:{page?:ScorePage;song:Song;onChange:(patch:Partial<Song>)=>void;meta:string;disabled?:boolean}){
+export default function SectionMarkerEditor({page,song,onChange,meta,disabled=false,activePane='score'}:{page?:ScorePage;song:Song;onChange:(patch:Partial<Song>)=>void;meta:string;disabled?:boolean;activePane?:string}){
  const [mode,setMode]=useState<'scroll'|'form'|'markers'>('scroll'),[placing,setPlacing]=useState<SectionMarker['type']|null>(null),[selected,setSelected]=useState(''),[zoom,setZoom]=useState(100),[showControls,setShowControls]=useState(false);
- const viewport=useRef<HTMLDivElement>(null);
+ const viewport=useRef<HTMLDivElement>(null),position=useRef({pageId:page?.id,top:0,left:0});
+ useLayoutEffect(()=>{if(position.current.pageId!==page?.id)position.current={pageId:page?.id,top:0,left:0};const el=viewport.current;if(el?.clientHeight){el.scrollTop=position.current.top;el.scrollLeft=position.current.left}},[activePane,page?.id]);
  useEffect(()=>{setPlacing(null);setSelected('');setMode('scroll');setZoom(100);setShowControls(false);viewport.current?.scrollTo({top:0,left:0})},[page?.id]);
  const markers=song.markers||[],marker=markers.find(m=>m.id===selected&&m.pageId===page?.id),layout=page?.layout??song.layout;
  const edit=(id:string,patch:Partial<SectionMarker>)=>onChange({markers:markers.map(m=>m.id===id?{...m,...patch}:m)});
@@ -23,7 +24,7 @@ export default function SectionMarkerEditor({page,song,onChange,meta,disabled=fa
    </div><select aria-label="악보 화면 배율" value={zoom} onChange={e=>setZoom(Number(e.target.value))}>{[100,125,150,200].map(n=><option value={n} key={n}>{n===100?'화면 맞춤':n+'%'}</option>)}</select>
   </fieldset>
   <p className="score-mode-hint" role="status">{mode==='scroll'?'빈 악보는 스크롤 · 위에서 편집 모드를 선택하세요.':mode==='form'?(layout.margin?'상단 여백에 고정된 송폼입니다. 여백을 끄면 악보 위로 이동할 수 있습니다.':'송폼은 끌어서 이동 · 빈 악보는 스크롤'):placing?sectionMarkerText(placing)+' · 원하는 위치를 누르세요. 밀면 스크롤됩니다.':'표시는 끌어서 이동 · 빈 악보는 스크롤'}</p>
-  <div className="score-viewport" ref={viewport}><ScorePreview page={page} song={song} meta={meta} zoom={zoom} editing={mode!=='scroll'&&!disabled} formSelected={mode==='form'} onFormMove={mode==='form'&&!layout.margin&&!disabled?(x,y)=>changeLayout({x,y}):undefined} selectedMarker={mode==='markers'?selected:undefined} placing={mode==='markers'&&!!placing&&!disabled} onMarkerPlace={disabled?undefined:add} onMarkerSelect={setSelected} onMarkerMove={mode==='markers'&&!disabled?(id,x,y)=>edit(id,{x,y}):undefined}/></div>
+  <div className="score-viewport" ref={viewport} onScroll={e=>{if(e.currentTarget.clientHeight)position.current={pageId:page?.id,top:e.currentTarget.scrollTop,left:e.currentTarget.scrollLeft}}}><ScorePreview page={page} song={song} meta={meta} zoom={zoom} editing={mode!=='scroll'&&!disabled} formSelected={mode==='form'} onFormMove={mode==='form'&&!layout.margin&&!disabled?(x,y)=>changeLayout({x,y}):undefined} selectedMarker={mode==='markers'?selected:undefined} placing={mode==='markers'&&!!placing&&!disabled} onMarkerPlace={disabled?undefined:add} onMarkerSelect={setSelected} onMarkerMove={mode==='markers'&&!disabled?(id,x,y)=>edit(id,{x,y}):undefined}/></div>
   {mode==='markers'&&<fieldset className="marker-palette" disabled={disabled||!page}><span>구간 추가</span><div className="marker-type-buttons">{SECTIONS.map(type=><button type="button" key={type} aria-pressed={placing===type} className={placing===type?'active':''} disabled={markers.length>=200} onClick={()=>{setPlacing(placing===type?null:type);setSelected('');setShowControls(false)}}>{type==='V'?'V · Verse':type==='C'?'C · Chorus':type}</button>)}</div></fieldset>}
   {mode!=='scroll'&&<button type="button" className="score-controls-toggle" disabled={mode==='markers'&&!marker} aria-expanded={showControls} onClick={()=>setShowControls(!showControls)}>{showControls?'크기·위치 조절 닫기':mode==='markers'?(marker?'선택한 표시 크기·위치 조절':'표시를 선택하면 크기·위치를 조절할 수 있어요'):'송폼 크기·위치 조절'}</button>}
   {mode!=='scroll'&&showControls&&<fieldset className="score-controls" disabled={disabled||!page}>
