@@ -98,6 +98,26 @@
 
 /* This navigation is a sibling of the scrolling fieldset, never a sticky child. */
 .editor-pane-nav {display:none}
+.editor-song-jump {display:block;max-width:100%;width:100%;min-width:0;min-height:30px;border:0;background:transparent;padding:2px 20px 2px 0;font-size:16px;font-weight:600;line-height:1.5;color:#293f34;text-overflow:ellipsis}
+.editor-save-notice {flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;border-bottom:1px solid #decfae;background:#faf5e9;color:#604d2e}
+.editor-save-notice>div:first-child {display:flex;gap:10px;align-items:flex-start;min-width:0}
+.editor-save-notice svg {flex-shrink:0;margin-top:2px}
+.editor-save-notice p {margin:0;min-width:0;font-size:12px;line-height:1.55}
+.editor-save-notice strong,.editor-save-notice p span {display:block}
+.editor-save-actions {display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.editor-save-actions button {font-size:12px;min-height:40px;white-space:normal}
+.editor-recovery-dialog {max-width:520px!important;overflow-y:auto}
+.editor-recovery-summary {display:flex;align-items:flex-start;gap:14px;padding:18px;border:1px solid #dbe2d4;border-radius:12px;background:#f0f3eb;color:#304637}
+.editor-recovery-summary svg {flex-shrink:0}.editor-recovery-summary>div {min-width:0}
+.editor-recovery-summary strong,.editor-recovery-summary span,.editor-recovery-summary small {display:block;overflow-wrap:anywhere}
+.editor-recovery-summary strong {font-size:17px;margin-bottom:6px}.editor-recovery-summary span {font-size:14px}.editor-recovery-summary small {font-size:12px;color:#62705b;margin-top:5px}
+.editor-recovery-explanation {font-size:14px;line-height:1.7;color:#626d5d;margin:0}
+@media(max-width:1000px){
+ .editor-save-notice {display:block;padding:8px 12px;max-height:25dvh;overflow-y:auto;overscroll-behavior:contain}
+ .editor-save-actions {gap:6px;justify-content:flex-end;margin-top:5px}
+ .editor-save-actions button {min-height:40px}
+ .editor-dialog[data-compact-viewport=true] .editor-save-notice {max-height:80px}
+}
 .score-render-error {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 .score-render-error>span {flex:1 1 180px}
 .editor-top,.score-focus-header {background:#fafbf7}

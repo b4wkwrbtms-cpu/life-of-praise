@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {retainEditorLocation,measureWorkbenchViewport} from '../lib/editor-navigation.ts';
+import {retainEditorLocation,rememberedSongPage,measureWorkbenchViewport} from '../lib/editor-navigation.ts';
 
 const before={songs:[{id:'a',pages:[{id:'a1'},{id:'a2'},{id:'a3'}]},{id:'b',pages:[{id:'b1'}]}]};
 assert.deepEqual(retainEditorLocation(before,structuredClone(before),'a',2),{songId:'a',pageIndex:2},'Undo a position/size edit must stay on page 3');
@@ -15,6 +15,11 @@ assert.deepEqual(retainEditorLocation(before,{songs:[{id:'a',pages:[{id:'a1'}]}]
 assert.deepEqual(retainEditorLocation(before,{songs:[before.songs[1]]},'a',2),{songId:'b',pageIndex:0});
 assert.deepEqual(retainEditorLocation(before,{songs:[{id:'other',pages:[{id:'one'},{id:'two'},{id:'three'}]}]},'a',2),{songId:'other',pageIndex:0},'A replacement song starts at its first page');
 assert.deepEqual(retainEditorLocation(before,{songs:[]},'a',2),{songId:'',pageIndex:0});
+assert.deepEqual(rememberedSongPage(before,'a','a3'),{songId:'a',pageIndex:2},'Returning to a song retains the viewed page');
+assert.deepEqual(rememberedSongPage(reordered,'a','a3'),{songId:'a',pageIndex:0},'Song navigation follows page ID after reordering');
+assert.deepEqual(rememberedSongPage(before,'b','removed'),{songId:'b',pageIndex:0});
+assert.deepEqual(rememberedSongPage({songs:[{id:'empty',pages:[]}]},'empty'),{songId:'empty',pageIndex:0});
+assert.equal(rememberedSongPage(before,'deleted'),null);
 for(const [width,height,offsetTop] of [[393,756,0],[393,352,214],[844,350,0],[320,460,10]]){
  const frame=measureWorkbenchViewport(width,{height,offsetTop,scale:1});
  assert.equal(frame.top+frame.height,offsetTop+height,'Bottom navigation tracks the visible bottom during keyboard/rotation');

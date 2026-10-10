@@ -164,6 +164,17 @@ try{
  await call('owner',`services/${deleteService.id}/purge`,'DELETE',{revision:3},404);
  assert.ok(!(await call('owner','services?trash=1')).some(s=>s.id===deleteService.id));
  console.log('PASS: admin-only permanent deletion, trash-only and stale-revision guards, dependent record cleanup, unused blob removal and retained shared/fixed-song scores');
+ // Recovery copies are private drafts and cannot replace an existing published service.
+ const existing=(await call('owner','services')).find(s=>s.id===service.id);
+ const recovered=structuredClone(existing.draft);recovered.title+=' · 복구본';recovered.songs.forEach(s=>s.exports=[]);recovered.songs[0].notes='기기에 남았던 미저장 편집';
+ const recovery=await call('owner','services','POST',recovered);
+ const afterRecovery=await call('owner','services'),copyRow=afterRecovery.find(s=>s.id===recovery.id),originalRow=afterRecovery.find(s=>s.id===existing.id);
+ assert.equal(copyRow.published,false);assert.equal(copyRow.version,0);assert.equal(copyRow.draft.songs[0].notes,recovered.songs[0].notes);
+ assert.deepEqual(originalRow.draft,existing.draft);assert.deepEqual(originalRow.data,existing.data);assert.equal(originalRow.revision,existing.revision);
+ assert.ok(!(await call('drum','services')).some(s=>s.id===recovery.id),'recovery stays private until explicitly published');
+ await call('owner',`services/${service.id}`,'PUT',{revision:existing.revision-1,data:recovered},409);
+ assert.deepEqual((await call('owner','services')).find(s=>s.id===existing.id).draft,existing.draft);
+ console.log('PASS: recovery creates a separate private draft, preserves original revision/publication, and stale updates remain rejected');
  await call('owner','team','PATCH',{id:'test-guitar',active:false});await call('guitar','services','GET',undefined,403);
  console.log('PASS: identity, owner-only writes, invitation, private drafts/files, publication, isolated personal notes, stale-write conflicts, comments, archive snapshots, shared section marker persistence and validation, revision review, revoked access.');
 }finally{await mf.dispose();}

@@ -9,6 +9,12 @@ export function retainEditorLocation(before:Worship,after:Worship,songId:string,
  return {songId:song?.id||'',pageIndex:preserved!==undefined&&preserved>=0?preserved:Math.max(0,Math.min(pageIndex,(song?.pages.length||1)-1))};
 }
 
+export function rememberedSongPage(data:Worship,songId:string,pageId?:string){
+ const song=data.songs.find(s=>s.id===songId);
+ if(!song)return null;
+ return {songId:song.id,pageIndex:Math.max(0,song.pages.findIndex(p=>p.id===pageId))};
+}
+
 export type WorkbenchViewport={top:number;height:number};
 // Native zoom remains native; don't continuously resize the paper under a pinch.
 export function measureWorkbenchViewport(width:number,viewport:{height:number;offsetTop:number;scale:number}|null):WorkbenchViewport|null{
