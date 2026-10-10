@@ -43,7 +43,7 @@ Site audience and application memberships are separate gates. The current Site a
 - Membership roles and positions are separate for each church; disabling membership affects only that church. The final active leader cannot be removed. Church team codes never grant access to another church or permission to open a new church.
 - The platform administrator can switch to any church, rename it, approve applications, and suspend/reopen its operation while preserving records. The default church cannot be suspended.
 - Every resource API derives membership from authenticated identity and the selected church. Client headers, the selection cookie and file query parameters select context but never confer access. Immutable score URLs include church context so separate tabs remain independent.
-- The platform owner enters 전체 교회 관리 from the header or the top of 내 정보: church list, approval queue, leader invitations, and development requests. It has no direct church-creation or team-join controls. Other members use 내 정보 for invited joining/switching or an owner-code-protected leader application. Approved leaders manage their own team invitations.
+- The platform owner enters 전체 교회 관리 from the bottom workspace support area or 내 정보: church list, approval queue, leader invitations, and development requests. It has no direct church-creation or team-join controls. Other members use 내 정보 for invited joining/switching or an owner-code-protected leader application. Approved leaders manage their own team invitations.
 
 ## Church deletion
 
@@ -75,3 +75,9 @@ Site audience and application memberships are separate gates. The current Site a
 Chat copy includes each song's saved YouTube or reference-audio URL by default, with a toggle to omit links. Empty or invalid links produce no dangling label. No external messages are sent automatically.
 
 Admins can permanently delete one or selected trashed services. The confirmation names the dates/titles and explains that restoration will no longer be possible. The server atomically deletes the revision-matched service plus its versions, comments, personal cues and confirmations. Unreferenced associated file metadata and blobs are cleaned up; files referenced by other services (including trash), archived versions, fixed songs, personal sheets or comments are retained. Cleanup failure is logged without reversing a completed service deletion. Tests use isolated synthetic records only.
+
+## Login and entry refinements
+
+The entry screen explains leader/team joining before sign-in, accepts a code, preserves a single invitation through authentication and account changes, and provides a browser-copy route for in-app browser trouble. The page shows only the currently supported ChatGPT sign-in. Initial account-load errors and expired login show recovery actions instead of a misleading signup form. `node tests/login-entry.mjs` checks these entry routes, malformed invitations and anonymous API gates.
+
+Direct Google/Apple login remains unconfigured. See `docs/login-transition.md` for verified host limitations, account linking and activation prerequisites.

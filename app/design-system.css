@@ -1,4 +1,44 @@
 /* Shared visual standards. Score canvas geometry and gesture surfaces stay in globals.css. */
+.app-navigation[hidden] {display:none!important}
+.entry-shell {max-width:1120px;margin:0 auto;padding:48px 24px 72px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:48px;align-items:center}
+.entry-card,.entry-preview {min-width:0}
+.entry-kicker {display:flex;align-items:center;gap:12px;font-size:14px;color:#637168;font-weight:500;margin-bottom:24px}
+.entry-kicker .brand-mark {width:36px;height:36px}
+.entry-card h1 {font-size:clamp(26px,3.1vw,38px);line-height:1.4;margin:0 0 16px;letter-spacing:-.04em}
+.entry-description {color:#637168;line-height:1.8;margin:0 0 28px}
+.entry-role {border:0;padding:0;margin:0 0 22px;min-width:0}
+.entry-role legend {font-size:14px;font-weight:600;margin-bottom:10px}
+.entry-role>div {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.entry-role label {border:1px solid #d2dcd4;border-radius:12px;background:#fff;padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer;min-height:80px;position:relative}
+.entry-role label.selected {border-color:#315d48;background:#eef4ed;box-shadow:inset 0 0 0 1px #315d48}
+.entry-role label:focus-within {outline:2px solid #315d48;outline-offset:3px}
+.entry-role input {position:absolute;opacity:0;width:1px;height:1px}
+.entry-role svg {flex-shrink:0;color:#315d48}
+.entry-role strong,.entry-role small {display:block;word-break:keep-all;overflow-wrap:anywhere}
+.entry-role strong {font-size:16px}.entry-role small {font-size:12px;color:#637168;line-height:1.5;margin-top:3px}
+.entry-steps {list-style:none;display:grid;gap:10px;padding:0;margin:22px 0;color:#42564a;font-size:14px}
+.entry-steps li {display:flex;align-items:center;gap:10px}
+.entry-steps li>span {width:25px;height:25px;display:grid;place-items:center;flex-shrink:0;border-radius:50%;background:#e9efe6;color:#315d48;font-size:12px;font-weight:600}
+.entry-invitation {display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border:1px solid #d4dfd1;background:#eef4ed;border-radius:12px;color:#315d48;margin:20px 0;font-size:14px;line-height:1.65}
+.entry-invitation svg {flex-shrink:0;margin-top:3px}.entry-invitation small {display:block;color:#637168;margin-top:4px;line-height:1.6}
+.entry-login {width:100%;min-height:52px;margin-top:20px;text-align:center;gap:10px;font-size:16px!important}
+.entry-auth-note,.entry-permission {font-size:13px;color:#637168;line-height:1.7;margin:12px 0}
+.entry-permission {padding-left:12px;border-left:2px solid #d2dcd4}
+.entry-code,.entry-help {font-size:14px;line-height:1.7}
+.entry-code summary,.entry-help summary {cursor:pointer;min-height:44px;display:list-item;padding:10px 0;color:#315d48;font-weight:500}
+.entry-code label {display:block;color:#637168;font-size:13px}.entry-code input,.entry-help input {width:100%;min-width:0;font-size:16px;min-height:48px;margin:8px 0}
+.entry-help {border-top:1px solid #dfe5df;margin-top:24px;padding-top:8px}.entry-help p {font-size:14px;margin:10px 0;color:#637168}.entry-help .secondary {font-size:14px}
+.entry-preview {background:#eaf0e7;border:1px solid #dce4d9;border-radius:24px;padding:24px 20px 30px;text-align:center}
+.entry-preview-heading {display:flex;gap:9px;align-items:center;justify-content:center;font-size:14px;color:#315d48;margin-bottom:12px}
+.entry-preview img {display:block;width:100%;height:auto;aspect-ratio:4/3;border-radius:14px}
+.entry-preview h2 {font-size:22px;margin:22px 0 10px}.entry-preview p {font-size:15px;color:#637168;line-height:1.75;max-width:300px;margin:0 auto}
+.entry-preview-caption {display:block;font-size:12px;color:#637168;margin-top:18px}
+.entry-message {border:1px solid #d9c7b2;background:#fbf6ef;border-radius:12px;padding:16px;font-size:14px}
+.entry-message p {margin:0 0 10px}.entry-recovery h1 {font-size:24px;margin:20px 0 14px}.entry-recovery p {margin:12px 0}.entry-recovery .full {margin-top:12px}
+.setup-account {display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f0f4ee;border-radius:10px;padding:12px 14px;margin:20px 0;font-size:13px;color:#637168;flex-wrap:wrap}
+.setup-account>span {min-width:0;flex:1}.setup-account strong {display:block;font-size:14px;color:#263c30;overflow-wrap:anywhere}.setup-account a {font-size:13px;white-space:nowrap}
+@media(max-width:760px){.entry-shell {grid-template-columns:minmax(0,1fr);gap:28px;padding:24px 20px calc(32px + env(safe-area-inset-bottom))}.entry-card h1 {font-size:28px}.entry-kicker {margin-bottom:20px}.entry-description {font-size:15px;margin-bottom:24px}.entry-preview {padding:20px 16px;border-radius:18px}.entry-preview img {max-height:270px;object-fit:contain}.entry-role label {padding:12px;gap:8px}.entry-preview h2 {font-size:20px}.entry-shell .text-button {min-height:44px}}
+@media(max-width:360px){.entry-shell {padding-left:16px;padding-right:16px}.entry-card h1 {font-size:25px}.entry-role label {padding:10px;gap:6px}.entry-role svg {width:17px}.entry-role small {font-size:12px}}
 :root {
   --type-caption: .8125rem;
   --type-label: .875rem;

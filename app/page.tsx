@@ -1,4 +1,10 @@
 import {getChatGPTUser,chatGPTSignInPath} from './chatgpt-auth';
+import {readEntry,entryReturnPath} from '@/lib/entry';
 import PraiseApp from './praise-app';
 export const dynamic='force-dynamic';
-export default async function Page({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){const params=await searchParams;const query=new URLSearchParams();for(const key of ['invite','leader'])if(typeof params[key]==='string')query.set(key,(params[key] as string).slice(0,100));const user=await getChatGPTUser();return <PraiseApp signedIn={!!user} signInPath={chatGPTSignInPath(query.size?'/?'+query.toString():'/')} />;}
+export default async function Page({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const params=await searchParams,query=new URLSearchParams();
+ for(const key of ['invite','leader','join'])for(const value of [params[key]].flat())if(typeof value==='string')query.append(key,value);
+ const entry=readEntry(query),user=await getChatGPTUser();
+ return <PraiseApp signedIn={!!user} entry={entry} signInPath={chatGPTSignInPath(entryReturnPath(entry))}/>;
+}

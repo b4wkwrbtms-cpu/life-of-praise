@@ -1,9 +1,10 @@
 import type {Song,ScorePage,Note,SectionMarker} from './types';
+import {readApiResponse} from './api-response';
 let activeChurch='';
 export function setChurchContext(id:string){if(activeChurch!==id){activeChurch=id;imageCache.clear();}}
 function churchHeaders():Record<string,string>{return activeChurch?{'X-Church-Id':activeChurch}:{};}
-export async function api<T=any>(path:string,method='GET',body?:unknown):Promise<T>{const res=await fetch('/api/'+path,{method,headers:{...churchHeaders(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});const data:any=await res.json();if(!res.ok)throw Object.assign(new Error(data.error||'요청을 완료하지 못했습니다.'),{status:res.status});return data;}
-export async function upload(file:File,kind='raw'){const f=new FormData();f.append('file',file);const r=await fetch('/api/files?kind='+kind,{method:'POST',headers:churchHeaders(),body:f});const data:any=await r.json();if(!r.ok)throw new Error(data.error);return data.id as string;}
+export async function api<T=any>(path:string,method='GET',body?:unknown):Promise<T>{const res=await fetch('/api/'+path,{method,headers:{...churchHeaders(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});return readApiResponse<T>(res);}
+export async function upload(file:File,kind='raw'){const f=new FormData();f.append('file',file);const r=await fetch('/api/files?kind='+kind,{method:'POST',headers:churchHeaders(),body:f});const data=await readApiResponse<{id:string}>(r);return data.id;}
 export function fileUrl(id:string){return '/api/files/'+encodeURIComponent(id)+(activeChurch?'?church='+encodeURIComponent(activeChurch):'');}
 export const imageCache=new Map<string,Promise<HTMLImageElement>>();
 export function loadImage(id:string){let promise=imageCache.get(id);if(!promise){promise=new Promise<HTMLImageElement>((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>{imageCache.delete(id);reject(new Error('악보 이미지를 불러오지 못했습니다.'));};im.src=id.startsWith('blob:')?id:fileUrl(id);});imageCache.set(id,promise);while(imageCache.size>12)imageCache.delete(imageCache.keys().next().value!);}return promise;}

@@ -6,33 +6,36 @@ import {api,setChurchContext,copyText} from '@/lib/client';
 import {POSITIONS,type Church,type Profile,type ChurchApplication} from '@/lib/types';
 import {Field,Mark,Picker} from './ui';
 import {toast} from 'sonner';
+import {entryReturnPath,signOutPath,type Entry} from '@/lib/entry';
 const TEAM_POSITIONS=POSITIONS.filter(p=>p!=='인도자').map(p=>({value:p,label:p}));
 
-export function LeaderApplication({me,done}:{me:any;done:()=>void}){
- const [name,setName]=useState(me?.account?.name||me?.name||''),[churchName,setChurch]=useState(''),[code,setCode]=useState(''),[busy,setBusy]=useState(false);
+export function LeaderApplication({me,done,initialCode=''}:{me:any;done:()=>void;initialCode?:string}){
+ const [name,setName]=useState(me?.account?.name||me?.name||''),[churchName,setChurch]=useState(''),[code,setCode]=useState(initialCode),[busy,setBusy]=useState(false),[formError,setFormError]=useState('');
  const applications:ChurchApplication[]=me?.applications||[],pending=applications.find(a=>a.status==='pending');
- useEffect(()=>{setCode(new URLSearchParams(location.search).get('leader')||'')},[]);
  const open=async(id:string)=>{setBusy(true);try{await api('churches/select','POST',{id});setChurchContext(id);done()}catch(e){toast.error((e as Error).message)}finally{setBusy(false)}};
  return <div className="leader-application"><p className="church-role-note"><ShieldCheck size={20}/><span>총관리자에게 받은 인도자 초대 코드로 신청하세요. 인도자와 새 교회가 함께 승인되면 공간이 열립니다.</span></p>
  {applications.map(a=><article className="application-result" key={a.id}><div className="row spread"><strong>{a.church_name}</strong><span className={'pill '+(a.status==='pending'?'amber':'')}>{a.status==='pending'?'승인 대기':a.status==='approved'?'승인 완료':'승인 거절'}</span></div>{a.status==='pending'?<p>총관리자가 신청을 확인하고 있습니다. 승인 전에는 교회 개설·팀원 초대가 제한됩니다.</p>:a.status==='rejected'?<p>{a.reason}<br/>다시 신청하려면 새 초대 코드를 받아 주세요.</p>:<button className="secondary" disabled={busy} onClick={()=>open(a.church_id!)}>승인된 교회 열기</button>}</article>)}
- {!pending&&<form onSubmit={async e=>{e.preventDefault();if(busy)return;setBusy(true);try{await api('church-applications','POST',{name,churchName,leaderCode:code});setCode('');setChurch('');history.replaceState(null,'',location.pathname);toast.success('인도자·교회 개설 신청을 보냈습니다.');done()}catch(e){toast.error((e as Error).message)}finally{setBusy(false)}}}>
- <Field label="인도자 이름"><input required value={name} onChange={e=>setName(e.target.value)} maxLength={40} autoComplete="name"/></Field><Field label="개설할 교회 찬양팀 이름"><input required minLength={2} maxLength={80} value={churchName} onChange={e=>setChurch(e.target.value)} placeholder="예: ○○교회 찬양팀"/></Field><Field label="총관리자가 발급한 인도자 초대 코드"><input required value={code} onChange={e=>setCode(e.target.value.trim())} maxLength={100} autoCapitalize="none" autoCorrect="off" placeholder="팀원 초대 코드와 다릅니다"/></Field><button className="primary full" disabled={busy||!name.trim()||churchName.trim().length<2||!code}>{busy?'신청 중…':'인도자·교회 개설 승인 요청'}</button></form>}
+ {!pending&&<form onSubmit={async e=>{e.preventDefault();if(busy)return;setBusy(true);setFormError('');try{await api('church-applications','POST',{name,churchName,leaderCode:code});setCode('');setChurch('');history.replaceState(null,'',location.pathname);toast.success('인도자·교회 개설 신청을 보냈습니다.');done()}catch(e){setFormError((e as Error).message)}finally{setBusy(false)}}}>
+ {formError&&<p className="error-text" role="alert">{formError}</p>}<Field label="인도자 이름"><input required value={name} onChange={e=>setName(e.target.value)} maxLength={40} autoComplete="name"/></Field><Field label="개설할 교회 찬양팀 이름"><input required minLength={2} maxLength={80} value={churchName} onChange={e=>setChurch(e.target.value)} placeholder="예: ○○교회 찬양팀"/></Field><Field label="총관리자가 발급한 인도자 초대 코드"><input required value={code} onChange={e=>setCode(e.target.value.trim())} maxLength={100} autoCapitalize="none" autoCorrect="off" placeholder="팀원 초대 코드와 다릅니다"/></Field><button className="primary full" disabled={busy||!name.trim()||churchName.trim().length<2||!code}>{busy?'신청 중…':'인도자·교회 개설 승인 요청'}</button></form>}
  <button className="text-button" disabled={busy} onClick={done}><RefreshCw size={16}/>승인 상태 새로고침</button></div>;
 }
 
-function TeamJoin({me,done}:{me:any;done:()=>void}){
- const [name,setName]=useState(me?.account?.name||me?.name||''),[position,setPosition]=useState('싱어'),[invite,setInvite]=useState(''),[busy,setBusy]=useState(false);
- useEffect(()=>{setInvite(new URLSearchParams(location.search).get('invite')||'')},[]);
- return <form onSubmit={async e=>{e.preventDefault();if(busy)return;setBusy(true);try{const r=await api('me','POST',{name,position,invite});setChurchContext(r.churchId);history.replaceState(null,'',location.pathname);done()}catch(e){toast.error((e as Error).message)}finally{setBusy(false)}}}>
- <Field label="이름"><input required value={name} onChange={e=>setName(e.target.value)} maxLength={40} autoComplete="name"/></Field><Field label="담당 세션 / 역할"><Picker value={position} onChange={setPosition} label="팀원 역할" options={TEAM_POSITIONS}/></Field>{!me?.owner&&<Field label="교회 팀원 초대 코드"><input required value={invite} onChange={e=>setInvite(e.target.value.trim())} maxLength={100} autoCapitalize="none" autoCorrect="off" placeholder="교회 인도자에게 받은 코드"/></Field>}<p className="subtle">이 코드를 발급한 교회의 팀원으로 참여합니다.</p><button className="primary full" disabled={busy||!name.trim()}>{busy?'참여 중…':'우리 교회 팀원으로 참여'}</button></form>;
+function TeamJoin({me,done,initialCode=''}:{me:any;done:()=>void;initialCode?:string}){
+ const [name,setName]=useState(me?.account?.name||me?.name||''),[position,setPosition]=useState('싱어'),[invite,setInvite]=useState(initialCode),[busy,setBusy]=useState(false),[formError,setFormError]=useState('');
+ return <form onSubmit={async e=>{e.preventDefault();if(busy)return;setBusy(true);setFormError('');try{const r=await api('me','POST',{name,position,invite});setChurchContext(r.churchId);history.replaceState(null,'',location.pathname);done()}catch(e){setFormError((e as Error).message)}finally{setBusy(false)}}}>
+ {formError&&<p className="error-text" role="alert">{formError}</p>}<Field label="이름"><input required value={name} onChange={e=>setName(e.target.value)} maxLength={40} autoComplete="name"/></Field><Field label="담당 세션 / 역할"><Picker value={position} onChange={setPosition} label="팀원 역할" options={TEAM_POSITIONS}/></Field>{!me?.owner&&<Field label="교회 팀원 초대 코드"><input required value={invite} onChange={e=>setInvite(e.target.value.trim())} maxLength={100} autoCapitalize="none" autoCorrect="off" placeholder="교회 인도자에게 받은 코드"/></Field>}<p className="subtle">이 코드를 발급한 교회의 팀원으로 참여합니다.</p><button className="primary full" disabled={busy||!name.trim()}>{busy?'참여 중…':'우리 교회 팀원으로 참여'}</button></form>;
 }
 
-export function ChurchSetup({me,error,done}:{me:any;error:string;done:()=>void}){
- const [mode,setMode]=useState('join'),[busy,setBusy]=useState(false);
- useEffect(()=>{if(new URLSearchParams(location.search).has('leader')||me?.applications?.some((a:ChurchApplication)=>a.status==='pending'))setMode('leader')},[]);
- return <main className="setup-wrap"><section className="setup-card panel church-setup"><Mark/><h1>우리 교회 찬양팀</h1><p>초대 코드의 종류에 맞게 참여해 주세요.</p>{error&&<p className="error-text">{error}</p>}{me?.blocked?<p className="error-text">계정 접근이 중지되었습니다. 총관리자에게 문의해 주세요.</p>:<>
+export function ChurchSetup({me,error,done,entry={role:'team',code:'',issue:''}}:{me:any;error:string;done:()=>void;entry?:Entry}){
+ const [mode,setMode]=useState((entry.code?entry.role==='leader':entry.role==='leader'||me?.applications?.some((a:ChurchApplication)=>a.status==='pending'))?'leader':'join'),[busy,setBusy]=useState(false);
+ return <main className="setup-wrap"><section className="setup-card panel church-setup"><Mark/><h1>우리 교회 찬양팀</h1><p>초대 코드의 종류에 맞게 참여해 주세요.</p>
+ {me?.email&&<div className="setup-account"><span>로그인한 계정<strong>{me.email}</strong></span><a href={signOutPath(entryReturnPath(entry))} target="_top" className="text-button">계정 변경</a></div>}
+ {error&&<p className="error-text" role="alert">{error}</p>}{entry.issue?<div className="error-text" role="alert"><p>{entry.issue}</p><a href="/" className="text-button">초대 정보 다시 확인하기</a></div>:me?.blocked?<p className="error-text">계정 접근이 중지되었습니다. 총관리자에게 문의해 주세요.</p>:<>
  {me?.churches?.length>0&&<div className="church-existing"><strong>참여 중인 교회</strong>{me.churches.map((c:Church)=><button type="button" className="secondary full" key={c.id} disabled={!c.active&&!me.superAdmin||busy} onClick={async()=>{setBusy(true);try{await api('churches/select','POST',{id:c.id});setChurchContext(c.id);done()}catch(e){toast.error((e as Error).message)}finally{setBusy(false)}}}>{c.name}{!c.active?' · 운영 중지':''}</button>)}</div>}
- <Tabs value={mode} onValueChange={setMode}><TabsList className="church-mode-tabs"><TabsTrigger value="join">팀원으로 참여</TabsTrigger><TabsTrigger value="leader">인도자 가입 신청</TabsTrigger></TabsList></Tabs>{mode==='join'?<TeamJoin me={me} done={done}/>:<LeaderApplication me={me} done={done}/>}</>}</section></main>;
+ {entry.code?<div className="entry-invitation"><ShieldCheck size={18}/><span>{entry.role==='leader'?'인도자 가입 신청':'찬양팀으로 참여'} · 초대 코드가 입력되었습니다.</span></div>:<Tabs value={mode} onValueChange={setMode}><TabsList className="church-mode-tabs"><TabsTrigger value="join">팀원으로 참여</TabsTrigger><TabsTrigger value="leader">인도자 가입 신청</TabsTrigger></TabsList></Tabs>}
+ {mode==='join'?<TeamJoin me={me} initialCode={entry.role==='team'?entry.code:''} done={done}/>:<LeaderApplication me={me} initialCode={entry.role==='leader'?entry.code:''} done={done}/>}
+ {entry.code&&<a className="text-button" href="/">다른 초대 코드로 참여하기</a>}
+ </>}</section></main>;
 }
 
 export function ChurchManager({me,onSwitch,reload}:{me:any;onSwitch:(id:string)=>Promise<void>;reload:()=>Promise<void>}){
