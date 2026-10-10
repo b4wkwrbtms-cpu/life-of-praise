@@ -260,3 +260,53 @@ textarea {padding:12px}
   .field-row {grid-template-columns:minmax(0,1fr);gap:0}
   .editor-top [data-slot=dialog-title] {font-size:var(--type-body)}
 }
+
+/* Consistent reading widths and controls for real church/song names. */
+.workspace,.profile-grid>*,.week-grid>*,.conversation-layout>*,.page-heading>*,.row>*,.church-list article>div,.request-filters>* {min-width:0}
+.church-list strong,.church-member-list strong,.comment-author strong,.request-card h3,.song-info h3 {overflow-wrap:anywhere;word-break:keep-all}
+.error-panel,.connection-banner,.review-banner {flex-wrap:wrap;line-height:1.65}
+.error-panel>button,.connection-banner>button {margin-left:auto;min-height:44px;white-space:nowrap}
+.error-panel small {display:block;margin-top:4px}
+.team-setting-actions {display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.team-setting-actions>button {flex:1 1 170px}
+.team-search {width:100%;margin:12px 0 16px}
+.team-status-help {margin:10px 0;color:var(--muted-foreground);font-size:var(--type-caption)!important}
+.member-identity {flex:1;min-width:0}
+.member-actions {display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.church-member-list article {align-items:flex-start;border:1px solid var(--border);padding:16px;border-radius:12px;background:#fff}
+.church-member-list .inactive-member {background:#f5f7f3}
+.team-empty,.list-loading {padding:24px 16px;text-align:center;color:var(--muted-foreground);font-size:var(--type-label)}
+.inactive-members {margin-top:20px;padding-top:12px;border-top:1px solid var(--border)}
+.inactive-members summary {padding:10px 0;cursor:pointer;font-size:var(--type-label);font-weight:500;color:var(--muted-foreground);min-height:44px}
+.inactive-members>p {margin:8px 0 16px;font-size:var(--type-caption);line-height:1.7;color:var(--muted-foreground)}
+.inactive-members .member-install-status {display:none}
+.studio-load-error {flex:0 0 auto;border-bottom:1px solid var(--border);font-size:var(--type-label);padding:12px 16px}
+.studio-load-error>span {flex:1 1 240px}
+.studio-header>div:first-child,.editor-top>div:first-child {min-width:0;flex:1}
+.studio-header [data-slot=dialog-title] {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.comment-image {max-width:100%;height:auto;border-radius:10px}
+.attachment-button {min-width:0;max-width:100%;min-height:44px}
+.attachment-button>span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.comment-actions button {min-height:40px;padding:6px 4px;font-size:var(--type-caption);gap:5px}
+.comment-composer textarea {width:100%;resize:vertical;min-height:140px}
+.request-replies p,.request-body,.comment-text {overflow-wrap:anywhere}
+[data-slot=alert-dialog-content] {width:min(512px,calc(100vw - 32px));max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}
+[data-slot=dialog-content]:not(:is(.editor-dialog,.studio-dialog,.rehearsal-reader,.library-song-picker,.fixed-picker-dialog,.image-save-dialog,.app-guide-dialog)) {max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}
+.request-dialog form,.request-dialog .field {min-width:0}
+@media(max-width:600px){
+ .team-setting-actions {gap:8px}
+ .church-member-list article {padding:14px;gap:10px}
+ .member-actions {width:100%;border-top:1px solid var(--border);padding-top:8px}
+ .team-install-summary {gap:8px}.team-install-summary .text-button {margin-left:auto}
+ .studio-header,.editor-top {flex-wrap:wrap}
+ .studio-header>div:first-child {flex:1 1 130px}
+ .studio-header>.row,.editor-top>.row {gap:4px;margin-left:auto;flex-shrink:0}
+ .reader-footer>div {flex:1}.reader-footer select {width:100%;max-width:180px;font-size:16px;min-height:44px}
+ .reader-next {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .studio-load-error .secondary {margin-left:0}
+ .comment-actions {gap:6px 12px}
+ .request-dialog[data-slot=dialog-content] {width:calc(100vw - 24px)!important;padding:20px 16px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .app-root *,[data-slot=dialog-content], [data-slot=alert-dialog-content] {scroll-behavior:auto!important;transition:none!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}

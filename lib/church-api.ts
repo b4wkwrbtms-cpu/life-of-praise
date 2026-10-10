@@ -53,7 +53,7 @@ export async function accountApi(req:Request,path:string[],user:ChatGPTUser,read
 export async function teamApi(req:Request,p:Profile,read:()=>Promise<any>){
  if(p.role!=='admin')fail(403,'이 교회의 인도자만 팀을 관리할 수 있습니다.');
  if(req.method==='GET'){
-  const r=await db().prepare('SELECT p.id,p.name,m.position,m.role,m.active,m.leader_requested AS leaderRequested FROM memberships m JOIN profiles p ON p.id=m.user_id WHERE m.church_id=? ORDER BY m.leader_requested DESC,m.created').bind(p.churchId).all<any>();
+  const r=await db().prepare('SELECT p.id,p.name,p.active AS accountActive,m.position,m.role,CASE WHEN p.active=1 THEN m.active ELSE 0 END AS active,m.leader_requested AS leaderRequested FROM memberships m JOIN profiles p ON p.id=m.user_id WHERE m.church_id=? ORDER BY m.leader_requested DESC,m.created').bind(p.churchId).all<any>();
   const devices=await db().prepare('SELECT i.user_id AS userId,i.platform,i.installed_at AS installedAt,i.launched_at AS launchedAt FROM app_installations i JOIN memberships m ON m.user_id=i.user_id WHERE m.church_id=?').bind(p.churchId).all<any>();
   return json(r.results.map(m=>({...m,devices:devices.results.filter(d=>d.userId===m.id).map(({userId,...d})=>d)})));
  }

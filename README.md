@@ -12,7 +12,7 @@ A Korean worship-team workspace with separate church spaces. Sign in using platf
 - User-isolated, editable performance cues with dragging, size/color, section links, undo and persistent exports.
 - Date-based archive, immutable publication snapshots, copy-to-new-week workflow.
 - Song and service discussions with replies, images, resolved and pinned states.
-- Automatic refresh every five seconds while visible, with focus/reconnect refresh. Open scores never change without the viewer choosing the latest version.
+- Automatic refresh every fifteen seconds while visible and online, with focus/reconnect refresh. Open scores never change without the viewer choosing the latest version.
 - Installable home-screen manifest. Native push, offline cache, handwriting, and combined-PDF export remain future scope from the approved plan.
 
 ## Runtime
@@ -81,3 +81,13 @@ Admins can permanently delete one or selected trashed services. The confirmation
 The entry screen explains leader/team joining before sign-in, accepts a code, preserves a single invitation through authentication and account changes, and provides a browser-copy route for in-app browser trouble. The page shows only the currently supported ChatGPT sign-in. Initial account-load errors and expired login show recovery actions instead of a misleading signup form. `node tests/login-entry.mjs` checks these entry routes, malformed invitations and anonymous API gates.
 
 Direct Google/Apple login remains unconfigured. See `docs/login-transition.md` for verified host limitations, account linking and activation prerequisites.
+
+## Reliability and team management review (v21)
+
+Activity lists and search separate active members from a collapsed removed/blocked list. Removal confirms the exact member/church and uses the existing church-scoped membership endpoint; it does not delete profiles or another church membership. Church counts also exclude globally blocked accounts.
+
+Shared JSON requests have bounded timeouts, Korean network errors and in-flight GET deduplication isolated by church. Writes invalidate pending-read reuse and are never automatically replayed by the network helper. Uploads have a separate 120-second limit.
+
+Personal score load errors offer retry, common-score viewing and close without a dead end. Unchanged personal scores are not written on close; reconnect retries pending changes. Selecting a cue on another page keeps the selection. Comments retain text on failed send, lock editing during send, and require deletion confirmation. Common mobile spacing, long labels, team actions and dialog scrolling share the design scale.
+
+`node tests/app-refinements.mjs` checks request deduplication, church boundaries, timeout semantics and team filtering. The governance suite checks effective membership status/counts. See `docs/product-review-2026-10-10.md` for review coverage and verification limits.

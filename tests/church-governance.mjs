@@ -48,7 +48,15 @@ try{
  const answer={id:randomUUID(),text:'가교회에 맞춰 검토하겠습니다.'};await call('owner','developer-requests/'+requestId+'/replies','POST',answer);await call('owner','developer-requests/'+requestId+'/replies','POST',answer);await call('member','developer-requests/'+requestId+'/replies','POST',{id:randomUUID(),text:'감사합니다. 추가로 순서 변경도 필요합니다.'},200,A);
  let detail=await call('leader','developer-requests/'+requestId,'GET',undefined,200,A);assert.equal(detail.replies.length,2);assert.equal(detail.replies[0].developer,1);assert.equal(detail.replies[1].developer,0);
  await call('owner','developer-requests/'+requestId,'PATCH',{status:'working',revision:1});await call('owner','developer-requests/'+requestId,'PATCH',{status:'done',revision:1},409);detail=await call('member','developer-requests/'+requestId,'GET',undefined,200,A);assert.equal(detail.request.status,'working');assert.equal(detail.request.revision,2);
- await call('leader','team','PATCH',{id:'member',active:false},200,A);await call('member','developer-requests/'+requestId,'GET',undefined,403,A);await call('owner','churches/'+A,'PATCH',{active:false});await call('leader','developer-requests','GET',undefined,403,A);assert.equal((await call('owner','developer-requests/'+requestId)).request.church_id,A);
+ // Team summaries and effective access use both membership and account state.
+ assert.equal((await call('owner','churches')).find(c=>c.id===A).memberCount,2);
+ await db.prepare("UPDATE profiles SET active=0 WHERE id='member'").run();
+ const stopped=(await call('leader','team','GET',undefined,200,A)).find(m=>m.id==='member');
+ assert.equal(stopped.active,0);assert.equal(stopped.accountActive,0);
+ assert.equal((await call('owner','churches')).find(c=>c.id===A).memberCount,1);
+ await db.prepare("UPDATE profiles SET active=1 WHERE id='member'").run();
+ assert.equal((await call('owner','churches')).find(c=>c.id===A).memberCount,2);
+ await call('leader','team','PATCH',{id:'member',active:false},200,A);assert.equal((await call('owner','churches')).find(c=>c.id===A).memberCount,1);await call('member','developer-requests/'+requestId,'GET',undefined,403,A);await call('owner','churches/'+A,'PATCH',{active:false});await call('leader','developer-requests','GET',undefined,403,A);assert.equal((await call('owner','developer-requests/'+requestId)).request.church_id,A);
  // Whole-church deletion is owner-only, recoverable, and rejects stale targets.
  await db.prepare("INSERT INTO services (id,church_id,title,date,draft,updated) VALUES ('deletion-fixture',?,'삭제 복원 예배','2026-10-11','{}',?)").bind(A,Date.now()).run();
  await db.prepare("INSERT INTO files (id,church_id,owner,name,type,kind,size,created) VALUES ('deletion-score',?,'leader','score.png','image/png','raw',4,?)").bind(A,Date.now()).run();

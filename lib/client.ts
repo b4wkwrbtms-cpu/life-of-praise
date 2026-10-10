@@ -1,10 +1,18 @@
 import type {Song,ScorePage,Note,SectionMarker} from './types';
-import {readApiResponse} from './api-response';
+import {requestJson} from './api-response.ts';
+const reading=new Map<string,Promise<unknown>>();
 let activeChurch='';
-export function setChurchContext(id:string){if(activeChurch!==id){activeChurch=id;imageCache.clear();}}
+export function setChurchContext(id:string){if(activeChurch!==id){activeChurch=id;imageCache.clear();reading.clear();}}
 function churchHeaders():Record<string,string>{return activeChurch?{'X-Church-Id':activeChurch}:{};}
-export async function api<T=any>(path:string,method='GET',body?:unknown):Promise<T>{const res=await fetch('/api/'+path,{method,headers:{...churchHeaders(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});return readApiResponse<T>(res);}
-export async function upload(file:File,kind='raw'){const f=new FormData();f.append('file',file);const r=await fetch('/api/files?kind='+kind,{method:'POST',headers:churchHeaders(),body:f});const data=await readApiResponse<{id:string}>(r);return data.id;}
+export async function api<T=any>(path:string,method='GET',body?:unknown):Promise<T>{
+ const key=activeChurch+':'+path;
+ if(method==='GET'&&reading.has(key))return reading.get(key) as Promise<T>;
+ const request=requestJson<T>('/api/'+path,{method,headers:{...churchHeaders(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+ if(method!=='GET'){reading.clear();return request;}
+ reading.set(key,request);
+ try{return await request}finally{if(reading.get(key)===request)reading.delete(key)}
+}
+export async function upload(file:File,kind='raw'){const f=new FormData();f.append('file',file);const data=await requestJson<{id:string}>('/api/files?kind='+kind,{method:'POST',headers:churchHeaders(),body:f},120_000);return data.id;}
 export function fileUrl(id:string){return '/api/files/'+encodeURIComponent(id)+(activeChurch?'?church='+encodeURIComponent(activeChurch):'');}
 export const imageCache=new Map<string,Promise<HTMLImageElement>>();
 export function loadImage(id:string){let promise=imageCache.get(id);if(!promise){promise=new Promise<HTMLImageElement>((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>{imageCache.delete(id);reject(new Error('악보 이미지를 불러오지 못했습니다.'));};im.src=id.startsWith('blob:')?id:fileUrl(id);});imageCache.set(id,promise);while(imageCache.size>12)imageCache.delete(imageCache.keys().next().value!);}return promise;}
