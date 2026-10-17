@@ -6,7 +6,7 @@ import {copyText} from '@/lib/client';
 import {Mark} from './ui';
 import WorshipHero from './worship-hero';
 
-export default function EntryScreen({entry}:{entry:Entry}){
+export default function EntryScreen({entry,notificationSignInPath}:{entry:Entry;notificationSignInPath?:string}){
  const [role,setRole]=useState(entry.role),[code,setCode]=useState(entry.code),[copyStatus,setCopyStatus]=useState('');
  const leader=role==='leader',invited=!!entry.code,returnTo=entryReturnPath({role,code});
  const steps=leader?['초대 코드로 인도자 신청','총관리자의 교회·인도자 승인','악보 준비와 찬양팀 초대']:['이름과 담당 세션 입력','초대한 교회 찬양팀에 참여','이번 주 악보와 송폼 확인'];
@@ -21,7 +21,7 @@ export default function EntryScreen({entry}:{entry:Entry}){
     {invited?<div className="entry-invitation"><Check size={18}/><div><strong>{leader?'인도자 초대 링크':'찬양팀 초대 링크'}로 들어왔어요</strong><small>로그인 후 이 초대 코드로 이어집니다. 유효 여부는 가입 시 확인합니다.</small></div></div>:<fieldset className="entry-role"><legend>어떻게 이용하시나요?</legend><div>{(['team','leader'] as const).map(value=><label key={value} className={role===value?'selected':''}><input type="radio" name="entry-role" value={value} checked={role===value} onChange={()=>{setRole(value);setCode('');setCopyStatus('')}}/>{value==='team'?<Users size={20}/>:<ShieldCheck size={20}/>}<span><strong>{value==='team'?'찬양팀':'인도자'}</strong><small>{value==='team'?'초대한 교회에 참여':'새 교회 개설 신청'}</small></span></label>)}</div></fieldset>}
     <ol className="entry-steps" aria-label={leader?'인도자 가입 순서':'찬양팀 가입 순서'}>{steps.map((step,i)=><li key={step}><span>{i+1}</span>{step}</li>)}</ol>
     {!invited&&<details className="entry-code"><summary>초대 코드를 직접 입력할게요</summary><label>{leader?'총관리자에게 받은 인도자 코드':'인도자에게 받은 찬양팀 코드'}<input value={code} onChange={e=>setCode(e.target.value.trim())} maxLength={100} autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off" placeholder="초대 코드 붙여넣기"/></label></details>}
-    <a className="primary entry-login" href={signInPath(returnTo)} target="_top">ChatGPT로 로그인하고 계속 <ArrowRight size={18}/></a>
+    <a className="primary entry-login" href={notificationSignInPath?.includes('notice%3D')&&!code&&role==='team'?notificationSignInPath:signInPath(returnTo)} target="_top">ChatGPT로 로그인하고 계속 <ArrowRight size={18}/></a>
     <p className="entry-auth-note">현재 ChatGPT 계정으로 로그인합니다. 기존 회원은 이전에 사용한 계정으로 들어와 주세요.</p>
     {leader&&<p className="entry-permission">인도자 선택만으로 관리 권한이 생기지 않습니다. 초대 코드와 총관리자 승인이 필요합니다.</p>}
     {invited&&<a className="text-button" href="/">다른 초대로 시작하기</a>}

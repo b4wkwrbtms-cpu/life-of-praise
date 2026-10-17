@@ -1,3 +1,4 @@
+import {notificationsApi,publicationNotices,schedulePush,resolveNotice,forgetPushDevice} from '@/lib/notifications';
 import {z} from 'zod';
 import {appSetupApi} from '@/lib/app-setup';
 import {accountApi,teamApi} from '@/lib/church-api';
@@ -16,7 +17,10 @@ if(method!=='GET'&&(req.headers.get('sec-fetch-site')==='cross-site'||(req.heade
 const user=await identity();
 const platformResponse=await platformApi(req,path,user,()=>read(req));if(platformResponse)return platformResponse;
 const accountResponse=await accountApi(req,path,user,()=>read(req));if(accountResponse)return accountResponse;
+if(path[0]==='notification-link'&&path.length===2&&method==='GET')return json(await resolveNotice(path[1],user.userId));
+if(path[0]==='notification-device'&&path.length===1&&method==='DELETE'){const v=z.object({endpoint:z.string().max(2048)}).strict().parse(await read(req));await forgetPushDevice(v.endpoint,user.userId);return json({ok:true});}
 const p=await member(req);
+if(path[0]==='notifications')return await notificationsApi(req,path,p,()=>read(req));
 if(path[0]==='app-setup'&&path.length===1)return await appSetupApi(req,p,()=>read(req));
 if(path[0]==='developer-requests')return await developerApi(req,path,p,()=>read(req));
 if(path[0]==='team')return await teamApi(req,p,()=>read(req));
@@ -68,7 +72,8 @@ if(path[0]==='services'){
  const ids=[...new Set(d.songs.flatMap(s=>[...s.pages.flatMap(p=>[p.id,...(p.source?[p.source]:[])]),...s.exports]))];
  const next=row.version+1,log=changes(row.published?data:undefined,d),j=JSON.stringify(d),now=Date.now();
  const ops=[db().prepare('INSERT INTO versions (service_id,version,data,created,changes) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM services WHERE id=? AND revision=? AND deleted=0)').bind(id,next,j,now,JSON.stringify(log),id,v.revision),db().prepare('UPDATE services SET title=?,date=?,draft=?,published=?,version=?,revision=revision+1,finalized=0,updated=?,changes=? WHERE id=? AND revision=? AND deleted=0').bind(d.title,d.date,j,j,next,now,JSON.stringify(log),id,v.revision),...ids.map(fid=>db().prepare('UPDATE files SET shared=1 WHERE id=?').bind(fid))];
- const out=await db().batch(ops);if(!out[1].meta.changes)fail(409,'새 버전이 먼저 저장되었습니다. 다시 열어 주세요.');return json({ok:true,version:next,revision:v.revision+1});
+ if(!row.published&&next===1)ops.push(...publicationNotices(id,p.churchId!,v.revision+1,d.title,d.date,now));
+ const out=await db().batch(ops);if(!out[1].meta.changes)fail(409,'새 버전이 먼저 저장되었습니다. 다시 열어 주세요.');schedulePush(p.churchId!);return json({ok:true,version:next,revision:v.revision+1});
  }
  if(path.length===2&&method==='PUT'){admin(p);const v=z.object({revision:z.number().int(),data:worshipSchema}).parse(await read(req));const d=v.data;await validateSongFiles(d.songs,p);const r=await db().prepare('UPDATE services SET draft=?,title=CASE WHEN published IS NULL THEN ? ELSE title END,date=CASE WHEN published IS NULL THEN ? ELSE date END,revision=revision+1,updated=? WHERE id=? AND revision=? AND deleted=0').bind(JSON.stringify(d),d.title,d.date,Date.now(),id,v.revision).run();if(!r.meta.changes)fail(409,'다른 창의 변경이 있습니다. 편집 내용을 복사한 뒤 다시 열어 주세요.');return json({revision:v.revision+1});}
  if(path[2]==='personal'){

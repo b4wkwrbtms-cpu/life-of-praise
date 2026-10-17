@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {churchContext} from './churches';
 import {POSITIONS,SECTIONS,type Worship,type Profile} from './types';
 export class ApiError extends Error{constructor(public status:number,message:string){super(message)}}
-export const bindings=()=>env as unknown as {DB:D1Database;BUCKET:R2Bucket;OWNER_EMAIL?:string};
+export const bindings=()=>env as unknown as {DB:D1Database;BUCKET:R2Bucket;OWNER_EMAIL?:string;WEB_PUSH_PUBLIC_KEY?:string;WEB_PUSH_PRIVATE_JWK?:string;WEB_PUSH_SUBJECT?:string};
 export const db=()=>bindings().DB;
 export const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
 export const fail=(code:number,message:string):never=>{throw new ApiError(code,message)};

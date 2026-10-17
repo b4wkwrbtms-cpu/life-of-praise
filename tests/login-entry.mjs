@@ -40,7 +40,8 @@ try{
   ['/','함께 준비하는 예배','/'],
   ['/?invite=test-team','찬양팀 초대 링크','/?invite=test-team'],
   ['/?leader=test-leader','인도자 초대 링크','/?leader=test-leader'],
-  ['/?join=leader','총관리자의 교회·인도자 승인','/?join=leader']
+  ['/?join=leader','총관리자의 교회·인도자 승인','/?join=leader'],
+  ['/?notice=12345678-1234-1234-1234-123456789abc','함께 준비하는 예배','/?notice=12345678-1234-1234-1234-123456789abc']
  ]){
   const res=await mf.dispatchFetch('http://app.test'+path);assert.equal(res.status,200);
   const html=await res.text();assert.ok(html.includes(text));
@@ -54,5 +55,5 @@ try{
  for(const path of ['/api/me','/api/services','/api/platform/churches']){
   const res=await mf.dispatchFetch('http://app.test'+path);assert.equal(res.status,401);
  }
- console.log('PASS: 6 rendered entry states, native top-level sign-in links, unavailable providers hidden, 3 anonymous API gates.');
+ console.log('PASS: 7 rendered entry states, native top-level sign-in links, unavailable providers hidden, 3 anonymous API gates.');
 }finally{await mf.dispose()}

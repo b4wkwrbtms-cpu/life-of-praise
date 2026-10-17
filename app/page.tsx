@@ -6,5 +6,7 @@ export default async function Page({searchParams}:{searchParams:Promise<Record<s
  const params=await searchParams,query=new URLSearchParams();
  for(const key of ['invite','leader','join'])for(const value of [params[key]].flat())if(typeof value==='string')query.append(key,value);
  const entry=readEntry(query),user=await getChatGPTUser();
- return <PraiseApp signedIn={!!user} entry={entry} signInPath={chatGPTSignInPath(entryReturnPath(entry))}/>;
+ const notice=typeof params.notice==='string'&&/^[a-f0-9-]{36}$/.test(params.notice)?params.notice:'';
+ const returnTo=!entry.code&&entry.role==='team'&&notice?'/?notice='+notice:entryReturnPath(entry);
+ return <PraiseApp signedIn={!!user} entry={entry} signInPath={chatGPTSignInPath(returnTo)}/>;
 }
