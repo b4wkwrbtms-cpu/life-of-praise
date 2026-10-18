@@ -1,6 +1,6 @@
 import type {Service} from './types';
 
-export type ReaderLayout = 'auto' | 'single' | 'double';
+export type ReaderLayout = 'auto' | 'single' | 'double' | 'custom';
 export type ReaderFit = 'page' | 'width' | 'zoom';
 export function readerPages(service:Service) {
   return service.data.songs.flatMap((song,si)=>song.pages.map((page,pi)=>({song,si,page,pi})));
@@ -11,11 +11,11 @@ export function readerIndex(value:unknown,total:number) {
   return Number.isFinite(number)?Math.max(0,Math.min(Math.max(0,total-1),Math.floor(number))):0;
 }
 export function readerLayout(value:unknown):ReaderLayout {
-  return value==='single'||value==='double'?value:'auto';
+  return value==='single'||value==='double'||value==='custom'?value:'auto';
 }
 export function readerColumns(layout:ReaderLayout,width:number,height:number):1|2 {
   if(layout==='single')return 1;
-  if(layout==='double')return 2;
+  if(layout==='double'||layout==='custom')return 2;
   return width>=760&&width>=height*1.15?2:1;
 }
 export function readerWindow(index:number,total:number,columns:number) {

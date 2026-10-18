@@ -7,6 +7,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import * as layout from '../lib/reader-layout.ts';
 import * as fullscreen from '../lib/reader-fullscreen.ts';
 import * as scoreViews from '../lib/score-views.ts';
+import * as pairsDomain from '../lib/reader-pairs.ts';
 import {newSong,newWorship} from '../lib/types.ts';
 
 const song=(id,count)=>({...newSong(),id,title:`찬양 ${id}`,pages:Array.from({length:count},(_,n)=>({id:`${id}-${n}`,width:900,height:1250})),exports:Array.from({length:count},(_,n)=>`${id}-export-${n}`)});
@@ -82,6 +83,7 @@ globalThis.Element=class{closest(){return null}};
 let resize;globalThis.ResizeObserver=class{constructor(callback){resize=callback}observe(){}disconnect(){}};
 const messages=[];
 let currentView;
+const pairPrefs={data:{pairs:[],revision:0,version:4,removed:0},error:'',loading:false,busy:false,refresh(){},async save(pairs){this.data={...this.data,pairs,revision:this.data.revision+1};return this.data}};
 const profile={id:'me',name:'내 이름',position:'드럼'};
 const makeView=(id='me')=>({serviceId:'week',version:4,userId:id,name:id,position:id==='me'?'드럼':'싱어',own:id==='me',members:[],songs:{a:{notes:[{id:'note-a',pageId:'a-0',text:`${id} 첫 곡 표시`}],basedVersion:4},b:{notes:[{id:'note-b',pageId:'b-0',text:`${id} 둘째 곡 표시`}],basedVersion:4}}});
 currentView={view:makeView(),loading:false,error:null,refresh(){}};
@@ -91,10 +93,13 @@ const Preview=props=>React.createElement('div',{'data-score-page':props.page.id,
 new Function('require','module','exports',code)(id=>{
  if(id==='react')return hooks;
  if(id==='@/lib/reader-layout')return layout;
+ if(id==='@/lib/reader-pairs')return pairsDomain;
+ if(id==='./use-reader-pairs')return {useReaderPairs:()=>pairPrefs};
+ if(id==='./reader-pair-editor')return {__esModule:true,default:'ReaderPairEditor'};
  if(id==='@/lib/reader-fullscreen')return fullscreen;
  if(id==='@/lib/score-views')return scoreViews;
  if(id==='@/lib/client')return {fileUrl:id=>'/api/files/'+id};
- if(id==='sonner')return {toast:{info:message=>messages.push(message)}};
+ if(id==='sonner')return {toast:{info:message=>messages.push(message),success:message=>messages.push(message)}};
  if(id==='@/components/ui/dialog')return {Dialog:'Dialog',DialogTitle:'h2',DialogDescription:'p'};
  if(id==='./workbench-dialog')return {__esModule:true,default:'DialogContent'};
  if(id==='./score-view-selector')return {__esModule:true,default:'ScoreViewSelector',ScoreViewNotice:'ScoreViewNotice',useScoreView:()=>currentView};
@@ -112,7 +117,7 @@ let closed=0,bounds={width:1180,height:680};
 const root={ownerDocument:document,requestFullscreen(){document.fullscreenElement=this;document.emit('fullscreenchange');return Promise.resolve()}};
 const stage={getBoundingClientRect:()=>bounds,scrollTo(){},focus(){}};
 const owner=state(),props={service,profile,churchId:'church-a',onClose(){closed++}};
-function render(){let nodes=tree(run(Reader,props,owner));nodes.find(n=>n.type==='DialogContent').props.ref.current=root;byClass(nodes,'reader-stage').props.ref.current=stage;while(owner.effects.length)owner.effects.shift()();return nodes}
+function render(){let nodes=tree(run(Reader,props,owner));nodes.find(n=>n.type==='DialogContent').props.ref.current=root;if(byClass(nodes,'reader-stage'))byClass(nodes,'reader-stage').props.ref.current=stage;while(owner.effects.length)owner.effects.shift()();return nodes}
 const visibleIds=nodes=>React.Children.toArray(byClass(nodes,'reader-spread')?.props.children).map(n=>n.props.item.page.id);
 let nodes=render();nodes=render();assert.deepEqual(visibleIds(nodes),['a-0','b-0']);
 assert.equal(byClass(nodes,'reader-spread').props['data-pages'],2);
@@ -171,6 +176,18 @@ const sheetState=state();let rendered=tree(run(Sheet,{item:exportItem,view:makeV
 rendered.find(n=>n.type==='img').props.onError();rendered=tree(run(Sheet,{item:exportItem,view:makeView(),service},sheetState));assert.ok(rendered.some(n=>n.type===Preview));
 rendered=tree(run(Sheet,{item:{...exportItem,song:{...exportItem.song,renderOnRead:true}},view:makeView(),service},state()));assert.ok(rendered.some(n=>n.type===Preview),'Updated song form must bypass an old export');
 const html=renderToStaticMarkup(run(Sheet,{item:pages[0],view:makeView(),service},state()));assert.ok(html.includes('me 첫 곡 표시'));
+// User-picked pages stay paired through presentation; all other pages are singles.
+pairPrefs.data={pairs:[[pairsDomain.readerPageRef(pages[3]),pairsDomain.readerPageRef(pages[0])]],revision:1,version:4,removed:0};
+byLabel(nodes,'한 화면에 볼 악보 수').props.onChange({target:{value:'custom'}});nodes=render();key('Home');nodes=render();
+assert.deepEqual(visibleIds(nodes),['b-2','a-0']);
+byClass(nodes,'reader-present-button').props.onClick();nodes=render();await settle();assert.deepEqual(visibleIds(nodes),['b-2','a-0']);
+byLabel(nodes,'다음 악보').props.onClick();nodes=render();assert.deepEqual(visibleIds(nodes),['b-0'],'Unpaired pages stay single, rather than being arbitrarily combined');
+byClass(nodes,'reader-exit-presentation').props.onClick();nodes=render();
+byClass(nodes,'reader-pair-entry').props.onClick();nodes=render();
+assert.ok(nodes.find(n=>n.type==='ReaderPairEditor'));assert.ok(!byClass(nodes,'reader-stage'));
+const editor=nodes.find(n=>n.type==='ReaderPairEditor');assert.equal(editor.props.initialPage.pageId,'b-0');
+const chosen=[[pairsDomain.readerPageRef(pages[0]),pairsDomain.readerPageRef(pages[4])]];
+await editor.props.onSave(chosen);nodes=render();assert.deepEqual(visibleIds(nodes),['a-0','c-0']);
 byLabel(nodes,'합주 모드 닫기').props.onClick();assert.equal(closed,1);
 owner.slots.forEach(slot=>slot.cleanup?.());assert.equal(window.count(),0);assert.equal(document.count(),0);
 console.log('PASS: resize anchor retention, keyboard/swipe controls, author/loading/error separation, independent image fallback and event cleanup.');

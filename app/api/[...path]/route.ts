@@ -7,6 +7,7 @@ import {developerApi} from '@/lib/developer-requests';
 import {purgeService} from '@/lib/purge-service';
 import {scoreViewApi} from '@/lib/score-view-api';
 import {songFormApi} from '@/lib/song-form-api';
+import {readerPairApi} from '@/lib/reader-pair-api';
 import {ApiError,admin,bindings,changes,db,digest,fail,getService,identity,isOwner,json,member,profileSchema,worshipSchema,songSchema,validateSongFiles} from '@/lib/server';
 import type {Profile,Worship} from '@/lib/types';
 export const dynamic='force-dynamic';
@@ -59,6 +60,7 @@ if(path[0]==='services'){
  const id=path[1];if(!id)fail(404,'경로가 없습니다.');
  if(path.length===5&&path[2]==='songs'&&path[4]==='form')return await songFormApi(req,id,path[3],p,()=>read(req));
  if(path.length===3&&path[2]==='score-views')return await scoreViewApi(req,id,p);
+ if(path.length===3&&path[2]==='reader-pairs')return await readerPairApi(req,id,p,()=>read(req));
  if(path.length===3&&path[2]==='purge'&&method==='DELETE'){admin(p);const v=z.object({revision:z.number().int().min(1)}).parse(await read(req));return json(await purgeService(id,v.revision,p.churchId!));}
  if(path[2]==='restore'&&method==='POST'){admin(p);const v=z.object({revision:z.number().int()}).parse(await read(req));const r=await db().prepare('UPDATE services SET deleted=0,revision=revision+1,updated=? WHERE id=? AND deleted=1 AND revision=? AND church_id=?').bind(Date.now(),id,v.revision,p.churchId).run();if(!r.meta.changes)fail(409,'목록이 변경되었습니다. 휴지통을 새로고침해 주세요.');return json({ok:true});}
  const {row,data}=await getService(id,p);
