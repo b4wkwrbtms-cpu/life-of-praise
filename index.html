@@ -55,7 +55,7 @@ p{margin:8px 0}.muted{color:var(--muted);font-size:14px}
 details{border:1px solid var(--line);border-radius:var(--r);padding:0 14px;background:var(--panel)}
 summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600;font-size:15px}
 details[open]{padding-bottom:14px}
-textarea,input[type=text],select{width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--radius-box);padding:10px 12px;font-size:16px;min-height:46px}
+textarea,input[type=text],input[type=password],select{width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--radius-box);padding:10px 12px;font-size:16px;min-height:46px}
 textarea{resize:vertical;line-height:1.7}
 label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 .two{display:grid;grid-template-columns:1fr 92px;gap:10px}
@@ -301,6 +301,8 @@ nav.bottom>div{grid-template-columns:repeat(5,1fr);max-width:640px}nav.bottom bu
 .pse{padding:10px 0 16px;border-top:1px solid var(--line)}.pse h4{margin:6px 0 0;font-size:17px}.pse textarea{font-size:16px;line-height:1.6}
 #ps-foot{border-top:1px solid var(--line);padding:10px 18px 14px;background:#fffefb}#ps-foot .status{margin:0 0 2px;min-height:0}.pscount{margin:0 0 8px;font-size:13px;color:var(--muted)}.psbtns{display:grid;grid-template-columns:1fr 1.3fr;gap:8px}.psbtns .btn{min-height:52px}
 header.app{padding-top:env(safe-area-inset-top)}
+.locknote{display:block;width:100%;text-align:left;margin:12px 0 0;padding:12px 16px;border-radius:16px;background:#fbf3e6;border:1px solid #efdcbd;color:#6b5324;font-size:15px;font-weight:600}
+@media(min-width:900px){#week>.locknote{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -6298,6 +6300,28 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
   function nextSunday() { const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   const newWorship = () => ({ title: '주일예배', date: nextSunday(), passage: '', translation: '', scripture: '', theme: '', rehearsal: '', notice: '', songs: [] });
   const newService = () => { const data = newWorship(); return { id: uuid(), title: data.title, date: data.date, data, version: 0, revision: 0, published: false, finalized: false, updated: Date.now(), changes: [], seen: 0 }; };
+  const SB = { url: 'https://ownarhjgryafrgoouirs.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93bmFyaGpncnlhZnJnb291aXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0OTUzNTAsImV4cCI6MjEwNzA3MTM1MH0.wf_-9DQMD5I1g55DSm4I_BpYieSHmB-Fpz_UsSD9ndk' }; // 공개용(읽기 전용 권한) 키. 쓰기는 서버의 팀 암호 검사를 거친다
+  const WEB = { on: false, pass: '', has: null, empty: false, at: 0 };
+  try { WEB.pass = localStorage.getItem('lop-pass') || ''; } catch (e) { /* 저장소 없음 */ }
+  const sbFetch = (path, opt) => fetch(SB.url + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SB.key, Authorization: 'Bearer ' + SB.key, 'Content-Type': 'application/json' }, (opt && opt.headers) || {}) }));
+  const rpc = async (fn, body) => { const r = await sbFetch('/rest/v1/rpc/' + fn, { method: 'POST', body: JSON.stringify(body || {}) }); if (!r.ok) throw { code: 'server', status: r.status }; return r.json(); };
+  const webWrite = async (fn, body) => { if (!WEB.pass) throw { code: 'locked' }; const ok = await rpc(fn, Object.assign({ p: WEB.pass }, body)); if (ok !== true) { webLock(); throw { code: 'locked' }; } };
+  function webLock() { WEB.pass = ''; try { localStorage.removeItem('lop-pass'); } catch (e) { /* 무시 */ } Lib.ro = true; }
+  const blobB64 = (blob) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] || ''); fr.onerror = rej; fr.readAsDataURL(blob); });
+  const b64Blob = (b64, mime) => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new Blob([u], { type: mime || 'image/png' }); };
+  const webCol = { doc: (id) => ({ set: (v) => webWrite('lop_save', { d: v }), delete: () => webWrite('lop_delete', { sid: id }) }),
+    async get() { const r = await sbFetch('/rest/v1/lop_services?select=doc'); if (!r.ok) throw new Error('server'); const rows = await r.json(); return { docs: rows.map((x) => ({ id: x.doc.id, data: () => x.doc })) }; } };
+  const webAssets = { async put(id, blob) { await webWrite('lop_put_file', { fid: id, fmime: blob.type === 'image/jpeg' ? 'image/jpeg' : 'image/png', fdata: await blobB64(blob) }); },
+    async upload(blob) { const id = uuid(); await this.put(id, blob); IDB.put(id, blob); return { id }; },
+    async get(id) { try { const r = await sbFetch('/rest/v1/lop_files?id=eq.' + encodeURIComponent(id) + '&select=mime,data'); if (!r.ok) return null; const rows = await r.json(); if (!rows.length) return null; const bl = b64Blob(rows[0].data, rows[0].mime); IDB.put(id, bl); return bl; } catch (e) { return null; } } };
+  async function webUnlock(pass, fresh, oldPass) { // 암호 확인(또는 처음 정하기·바꾸기) 뒤 이 기기를 편집 가능으로
+    let ok;
+    if (fresh) ok = await rpc('lop_set_pass', { old_pass: oldPass || null, new_pass: pass }); else ok = await rpc('lop_check', { p: pass });
+    if (ok !== true) return false;
+    WEB.pass = pass; WEB.has = true; try { localStorage.setItem('lop-pass', pass); } catch (e) { /* 무시 */ } Lib.ro = false;
+    if (WEB.empty && Lib.items.length) { for (const svc of Lib.items.slice()) { try { await webCol.doc(svc.id).set(clone(svc)); } catch (e) { break; } } WEB.empty = false; }
+    return true;
+  }
   const AUTH = { on: false, uid: '', name: '', avatar: '', owner: false, edit: false, write: null }, PROF = {};
   const roleLabel = () => (AUTH.owner ? '소유자' : AUTH.edit ? '편집자' : Lib.ro ? '보기 전용' : '팀원');
   let prefsRef = null, prefsT = 0, prefsBusy = false;
@@ -6334,6 +6358,19 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
           await loadAccount(db).catch(() => {});
         }
       } catch (e) { this.col = null; }
+      if (!this.col && !window.claude && /^https?:$/.test(location.protocol)) { // 웹앱: 팀이 함께 쓰는 저장소
+        try {
+          const snap = await Promise.race([webCol.get(), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))]);
+          this.items = snap.docs.map((d) => clone(d.data())).filter((x) => x && x.data && Array.isArray(x.data.songs)); this.col = webCol; this.assets = webAssets; WEB.on = true; WEB.empty = !this.items.length; WEB.at = Date.now(); WEB.offline = false; try { localStorage.setItem('lop-web-cache', JSON.stringify(this.items)); } catch (e) { /* 용량이 모자라면 건너뛴다 */ }
+          try { WEB.has = await rpc('lop_has_pass'); } catch (e) { WEB.has = null; }
+          if (WEB.pass) { try { if ((await rpc('lop_check', { p: WEB.pass })) !== true) webLock(); } catch (e) { /* 확인 못 하면 그대로 둔다 */ } }
+          this.ro = !WEB.pass;
+        } catch (e) { // 서버에 닿지 못하면 마지막으로 받아 둔 자료를 보기 전용으로
+          let cached = null; try { cached = JSON.parse(localStorage.getItem('lop-web-cache') || 'null'); } catch (e2) { cached = null; }
+          if (Array.isArray(cached) && cached.length) { this.items = cached; this.col = webCol; this.assets = webAssets; WEB.on = true; WEB.offline = true; WEB.at = 0; this.ro = true; }
+          else { this.col = null; WEB.on = false; }
+        }
+      }
       if (!this.col) { try { this.items = JSON.parse(localStorage.getItem(LIBKEY) || '[]'); } catch (e) { this.items = []; } }
       this.sort(); this.ready = true;
     },
@@ -6486,10 +6523,15 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
         <p class="muted" style="margin-top:12px">${AUTH.uid ? '알림 확인, 내 메모, 맡은 자리는 이 계정에 저장되어 다른 기기에서도 그대로 보입니다.' : '이 계정은 이 페이지에서 식별되지 않아 설정이 이 기기에만 남습니다.'}${Lib.ro ? ' 지금은 보기 전용 권한이라 예배와 소통 글을 고칠 수 없습니다. 인도자에게 쓰기 권한(참여자, Contributor)을 부탁하세요.' : ''}</p></div>
       <div class="svc"><h3 style="margin-top:0">팀원 ${Lib.members.length}명</h3>${Lib.members.slice().sort((a, b) => (a.joined || 0) - (b.joined || 0)).map((m) => `<div class="mem">${(PROF[m.id] && PROF[m.id].avatarUrl) || m.id === AUTH.uid ? `<img src="${esc((PROF[m.id] && PROF[m.id].avatarUrl) || AUTH.avatar)}" alt="">` : '<img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">'}<b>${esc((m.id === AUTH.uid && AUTH.name) || (PROF[m.id] && PROF[m.id].name) || '팀원')}${m.id === AUTH.uid ? ' (나)' : ''}</b><span>${esc(m.position || '자리 미정')}</span></div>`).join('') || '<p class="pass">아직 들어온 팀원이 없습니다.</p>'}
         <p class="muted" style="margin-top:10px">팀원을 더하려면 이 페이지의 공유 메뉴에서 그 사람을 쓰기 권한(참여자, Contributor)으로 초대하세요. 초대받은 사람이 Claude에 로그인해 이 페이지를 열면 자동으로 명단에 올라옵니다.</p></div>`
-      : `<div class="svc"><div class="acct"><div><b>로그인되지 않았습니다</b><span>Claude 안에서 이 페이지를 열면 Claude 계정으로 자동 로그인됩니다.</span></div></div><label class="f" for="me-name">이름 (소통에 표시됩니다)</label><input id="me-name" type="text" value="${esc(ME.name)}" autocomplete="name">${posSel}
+      : `<div class="svc"><div class="acct"><div><b>${WEB.on ? '이 기기에서 쓸 이름' : '로그인되지 않았습니다'}</b><span>${WEB.on ? '소통 글에 이 이름이 표시됩니다.' : 'Claude 안에서 이 페이지를 열면 Claude 계정으로 자동 로그인됩니다.'}</span></div></div><label class="f" for="me-name">이름 (소통에 표시됩니다)</label><input id="me-name" type="text" value="${esc(ME.name)}" autocomplete="name">${posSel}
       <p class="muted" style="margin-top:12px">지금은 이름과 자리, 알림 확인, 내 메모가 이 기기에만 저장됩니다.</p></div>`;
-    $('#me').innerHTML = login + `
-      <div class="svc"><h3 style="margin-top:0">자료</h3><p class="pass">예배 ${all.length}건 · 곡 ${songs.size}곡 · ${Lib.col ? '이 페이지를 함께 쓰는 팀원 모두에게 보입니다.' : '지금은 이 기기에만 저장됩니다.'}${Lib.ro ? ' 보기 전용 권한입니다.' : ''}</p>
+    const webCard = WEB.on ? `<div class="svc"><h3 style="margin-top:0">팀 자료 연동</h3><p class="pass">이 주소를 여는 모든 기기가 같은 예배 자료를 봅니다. 고치는 것은 팀 암호를 넣은 기기만 할 수 있습니다.</p>
+        ${Lib.ro ? (WEB.has === false ? `<label class="f" for="wp-new">팀 암호 정하기 (6자 이상, 처음 한 번)</label><input id="wp-new" type="password" autocomplete="new-password"><button class="btn" data-act="web-set" style="margin-top:10px">이 암호로 정하고 편집 시작</button>`
+          : `<label class="f" for="wp-pass">팀 암호</label><input id="wp-pass" type="password" autocomplete="current-password"><button class="btn" data-act="web-unlock" style="margin-top:10px">편집 잠금 풀기</button>`)
+          : `<p class="meta"><b>이 기기는 편집할 수 있습니다</b></p><div class="acts"><button class="btn sec" data-act="web-lock">이 기기 잠그기</button><button class="btn sec" data-act="web-change">팀 암호 바꾸기</button></div>${S.wpChange ? '<label class="f" for="wp-new">새 팀 암호 (6자 이상)</label><input id="wp-new" type="password" autocomplete="new-password"><button class="btn" data-act="web-set" style="margin-top:10px">새 암호로 바꾸기</button>' : ''}`}
+        <p id="wp-status" class="status" role="status"></p></div>` : '';
+    $('#me').innerHTML = webCard + login + `
+      <div class="svc"><h3 style="margin-top:0">자료</h3><p class="pass">예배 ${all.length}건 · 곡 ${songs.size}곡 · ${WEB.on ? '이 주소를 여는 모든 기기에 보입니다.' : Lib.col ? '이 페이지를 함께 쓰는 팀원 모두에게 보입니다.' : '지금은 이 기기에만 저장됩니다.'}${Lib.ro ? (WEB.on ? ' 지금은 보기만 됩니다.' : ' 보기 전용 권한입니다.') : ''}</p>
       <div class="acts"><button class="btn sec" data-act="lib-export">전체 백업 내보내기</button><button class="btn sec" data-edit data-act="imp">백업·PPT·가사 파일 가져오기</button></div><p class="muted">${LS('lop-backup-at', 0) ? '마지막 백업: ' + ago(LS('lop-backup-at', 0)) : '아직 백업한 적이 없습니다. 가끔 내보내 두면 안전합니다.'}</p><p id="me-status" class="status" role="status"></p></div>
       <div class="tip"><b>원래 생명의 찬양과 다른 점</b>로그인은 Claude 계정으로 합니다(따로 만든 아이디·비밀번호는 없습니다). 교회를 여러 개로 나누는 기능, 휴대폰 푸시 알림, PDF 악보는 이 페이지에 없습니다.</div>`;
   }
@@ -6521,7 +6563,8 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       else if (!w) el.innerHTML = listPills() + `<div class="empty"><b>${S.list ? esc(S.list) + ' 목록에 예배가 없습니다' : '아직 예배가 없습니다'}</b><p>아래 버튼으로 예배 준비를 시작하세요.</p><button class="btn" data-edit data-act="prep" style="margin-top:14px">+ 예배 준비</button></div>`;
       else {
         const d = w.data, id = esc(w.id), ym = String(d.date).slice(0, 7).replace('-', '.'), day = String(d.date).slice(8, 10), wd = ['일', '월', '화', '수', '목', '금', '토'][new Date(d.date + 'T12:00:00').getDay()] || '', pages = d.songs.reduce((n, x) => n + (x.pages || []).length, 0);
-        el.innerHTML = `<div class="wkhead"><p class="dt"><span>${esc(ym)}</span><b>${esc(day)}</b></p><div><p class="k">${wd ? wd + '요일 ' : ''}예배 순서지</p><h2>${esc(d.title || '이번 주 예배')}</h2>${d.passage ? `<p class="pass">${esc(d.passage)}</p>` : ''}</div></div>
+        const lockNote = WEB.on && Lib.ro ? `<button class="locknote" data-act="web-go">${WEB.offline ? '인터넷에 닿지 못해 마지막으로 받은 자료를 보여 줍니다' : '지금은 보기만 됩니다 · 고치려면 팀 암호 넣기 ›'}</button>` : '';
+        el.innerHTML = lockNote + `<div class="wkhead"><p class="dt"><span>${esc(ym)}</span><b>${esc(day)}</b></p><div><p class="k">${wd ? wd + '요일 ' : ''}예배 순서지</p><h2>${esc(d.title || '이번 주 예배')}</h2>${d.passage ? `<p class="pass">${esc(d.passage)}</p>` : ''}</div></div>
         <div class="prep"><button data-edit data-act="prep">+ 예배 준비</button><button data-act="refresh" aria-label="새로 고침"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.500-4M4 4v4h4M4 13a8 8 0 0014.500 4M20 20v-4h-4"/></svg></button></div>
         ${listPills()}
         <div class="wkpick"><select id="week-pick" aria-label="볼 예배 고르기">${Lib.live.filter((x) => !x.fixed).map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? 'selected' : ''}>${esc(x.date)} · ${esc(x.title)}${x.published ? '' : ' · 초안'}</option>`).join('')}</select><span class="tag">${w.published ? '팀 공개' : '초안'}</span>${w.version ? `<em>v${w.version}</em>` : ''}<button data-act="card-edit" data-id="${id}">${Lib.ro ? '열기' : '편집'} ↗</button></div>
@@ -6708,8 +6751,9 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
           const raw = Array.isArray(j) ? j : Array.isArray(j && j.services) ? j.services : [j];
           const list = raw.map(normService).filter(Boolean);
           for (const svc of list) { svc._keep = true; await Lib.put(svc); }
+          let nf = 0; if (j && j.files && typeof j.files === 'object') { for (const fid of Object.keys(j.files)) { const f0 = j.files[fid]; if (!f0 || !f0.data) continue; try { const bl = b64Blob(f0.data, f0.mime); if (WEB.on) await webAssets.put(fid, bl); await IDB.put(fid, bl); delete IMGC[fid]; nf++; } catch (e) { /* 다음 그림으로 */ } } }
           if (list.length) { S.svcId = list.sort((a, b) => String(b.date).localeCompare(String(a.date)))[0].id; syncSet(); save(); }
-          renderLib(); impStatus(list.length ? '예배 ' + list.length + '건, 곡 ' + list.reduce((n, x) => n + x.data.songs.length, 0) + '개를 가져왔습니다. 악보 이미지는 파일에 들어 있지 않아 다시 올려야 합니다.' : '이 파일에서 예배 자료(songs 목록)를 찾지 못했습니다.', list.length ? '' : 'warn'); continue;
+          renderLib(); impStatus(list.length ? '예배 ' + list.length + '건, 곡 ' + list.reduce((n, x) => n + x.data.songs.length, 0) + '개' + (nf ? ', 악보 그림 ' + nf + '장' : '') + '을 가져왔습니다.' : '이 파일에서 예배 자료(songs 목록)를 찾지 못했습니다.', list.length ? '' : 'warn'); continue;
         }
         impStatus(ext === 'ppt' ? '옛 형식(.ppt)은 읽을 수 없습니다. PowerPoint에서 .pptx로 다시 저장해서 올려 주세요.' : ext === 'hwp' ? '한글(.hwp) 파일은 읽을 수 없습니다. 악보는 화면 캡처나 사진으로 올려 주세요.' : '.pptx, .docx, .txt 파일만 가져올 수 있습니다.', 'warn');
       } catch (e) { impStatus('"' + f.name + '" 파일을 읽지 못했습니다.', 'warn'); }
@@ -6724,7 +6768,10 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
   async function exportLib() {
     if (!Lib.items.length) return impStatus('내보낼 예배가 없습니다.', 'warn');
     const d = new Date(), stamp = '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
-    try { await saveFile('생명의찬양_백업_' + stamp + '.json', JSON.stringify({ app: 'life-of-praise', version: 1, exported: d.toISOString(), services: Lib.items }, null, 1)); LSset('lop-backup-at', Date.now()); impStatus('예배 ' + Lib.items.length + '건을 파일로 내보냈습니다.'); renderHome(); }
+    const files = {}; impStatus('백업을 만드는 중…', 'busy');
+    try { const ids = new Set(); Lib.items.forEach((x) => x.data.songs.forEach((g) => (g.pages || []).forEach((p) => ids.add(p.id))));
+      for (const id of ids) { const im = await pageImage(id); if (!im || /^scores\//.test(im.url)) continue; try { const bl = await (await fetch(im.url)).blob(); files[id] = { mime: bl.type || 'image/png', data: await blobB64(bl) }; } catch (e) { /* 그 그림만 빼고 계속 */ } } } catch (e) { /* 그림 없이 내보낸다 */ }
+    try { await saveFile('생명의찬양_백업_' + stamp + '.json', JSON.stringify({ app: 'life-of-praise', version: 2, exported: d.toISOString(), services: Lib.items, files }, null, 1)); LSset('lop-backup-at', Date.now()); impStatus('예배 ' + Lib.items.length + '건을 파일로 내보냈습니다.'); renderHome(); }
     catch (e) { impStatus(e && e.code === 'declined' ? '내보내기를 취소했습니다.' : '내보내지 못했습니다.', 'warn'); }
   }
   /* 저장된 악보 페이지(ScorePage)를 다시 불러와 확인 화면과 AI 읽기에 쓴다 */
@@ -6732,7 +6779,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
   const IDB = { db: null, open() { if (this.db) return this.db; this.db = new Promise((res) => { try { const r = indexedDB.open('lop-files', 1); r.onupgradeneeded = () => r.result.createObjectStore('f'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } }); return this.db; },
     async put(id, blob) { const d = await this.open(); if (!d) return false; return new Promise((res) => { const t = d.transaction('f', 'readwrite'); t.objectStore('f').put(blob, id); t.oncomplete = () => res(true); t.onerror = t.onabort = () => res(false); }); },
     async get(id) { const d = await this.open(); if (!d) return null; return new Promise((res) => { const q = d.transaction('f').objectStore('f').get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } };
-  async function pageImage(id) { const e = encodeURIComponent(id); for (const u of ['scores/' + e + '.png', 'scores/' + e + '.jpg', '/_blob/' + e]) { const im = await probe(u); if (im) return { url: u, el: im, stored: true }; } const bl = await IDB.get(id); if (bl) { const u = URL.createObjectURL(bl), im = await probe(u); if (im) return { url: u, el: im, stored: true }; } return null; }
+  async function pageImage(id) { const e = encodeURIComponent(id); for (const u of WEB.on ? ['scores/' + e + '.png', 'scores/' + e + '.jpg'] : ['scores/' + e + '.png', 'scores/' + e + '.jpg', '/_blob/' + e]) { const im = await probe(u); if (im) return { url: u, el: im, stored: true }; } const bl = (await IDB.get(id)) || (WEB.on ? await webAssets.get(id) : null); if (bl) { const u = URL.createObjectURL(bl), im = await probe(u); if (im) return { url: u, el: im, stored: true }; } return null; }
   async function loadPages(song) {
     const ids = (song.exports && song.exports.length === (song.pages || []).length && song.exports.length ? song.exports : (song.pages || []).map((p) => p.id)).slice(0, 10), mine = S.song;
     const got = await Promise.all(ids.map(pageImage));
@@ -7476,6 +7523,12 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     const a = b.dataset.act, i = +b.dataset.i, id = b.dataset.id;
     if (PS.open && (a === 'dl' || a === 'dl-pdf')) setTimeout(() => renderPS(true), 40);
     if (a.indexOf('wb-') === 0) return wbClick(a, b);
+    if (a === 'web-unlock' || a === 'web-set') { const st = $('#wp-status'), fresh = a === 'web-set', v = ($(fresh ? '#wp-new' : '#wp-pass').value || '').trim(); if (v.length < (fresh ? 6 : 1)) { st.textContent = fresh ? '암호는 6자 이상으로 정해 주세요.' : '암호를 넣어 주세요.'; st.className = 'status warn'; return; }
+      st.textContent = '확인하는 중…'; st.className = 'status busy'; b.disabled = true;
+      return webUnlock(v, fresh, fresh ? WEB.pass : '').then((ok) => { if (ok) { S.wpChange = false; syncSet(); toast(fresh ? '팀 암호를 정했습니다. 이 기기에서 편집할 수 있습니다.' : '이 기기에서 편집할 수 있습니다.'); renderHome(); } else { const s2 = $('#wp-status'); b.disabled = false; if (s2) { s2.textContent = '암호가 맞지 않습니다.'; s2.className = 'status warn'; } } }, () => { const s2 = $('#wp-status'); b.disabled = false; if (s2) { s2.textContent = '서버에 닿지 못했습니다. 잠시 뒤 다시 눌러 주세요.'; s2.className = 'status warn'; } }); }
+    if (a === 'web-lock') { webLock(); toast('이 기기를 잠갔습니다.'); return renderHome(); }
+    if (a === 'web-change') { S.wpChange = !S.wpChange; return renderHome(); }
+    if (a === 'web-go') return go('me');
     if (a === 'batch-go') return batchAI('');
     if (a === 'batch-one') return batchAI(b.dataset.id);
     if (a === 'batch-stop') { if (BA.ctl) BA.ctl.abort(); return; }
@@ -7642,9 +7695,10 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     if (el.id === 'q-lib') { S.q = el.value; renderHome(); } else if (el.id === 'q-fixed') { S.qf = el.value; renderHome(); } });
   if (/KAKAOTALK|NAVER\(inapp|Instagram|FBAN/i.test(navigator.userAgent)) $('#inapp').hidden = false;
   sampleP.then((s) => { if (!s) $('#ai-note').textContent = 'AI 읽기는 Claude 앱 안에서 열었을 때만 됩니다. 지금은 테스트 곡과 직접 붙여넣기로 시험할 수 있습니다.'; });
-  window.__SF = { S, show, Lib, toEditor, fromEditor, normService };
+  window.__SF = { S, show, Lib, pageImage, toEditor, fromEditor, normService };
   if (S.song && !S.song.id) S.song.id = newId();
   show();
+  document.addEventListener('visibilitychange', () => { if (!WEB.on || document.hidden || Date.now() - WEB.at < 60000 || PS.open || BA.run || !$('#reader').hidden) return; const v = location.hash.slice(1) || 'week'; if (['score', 'check', 'slides'].includes(v)) return; Lib.init().then(() => { syncSet(); renderHome(); }); });
   Lib.init().then(seed).then((n) => { if (AUTH.fresh && !Object.keys(SEEN).length) { Lib.items.forEach((x) => { SEEN[x.id] = x.version; }); LSset('lop-seen', SEEN); } if (!cur()) S.svcId = Lib.live[0] ? Lib.live[0].id : ''; syncSet(); show(); if (n) { Lib.items.forEach((x) => { SEEN[x.id] = x.version; }); LSset('lop-seen', SEEN); renderHome(); status('백업에서 예배 ' + n + '건을 불러왔습니다.'); } });
 })();
 </script>
