@@ -6319,7 +6319,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     if (fresh) ok = await rpc('lop_set_pass', { old_pass: oldPass || null, new_pass: pass }); else ok = await rpc('lop_check', { p: pass });
     if (ok !== true) return false;
     WEB.pass = pass; WEB.has = true; try { localStorage.setItem('lop-pass', pass); } catch (e) { /* 무시 */ } Lib.ro = false;
-    if (WEB.empty && Lib.items.length) { for (const svc of Lib.items.slice()) { try { await webCol.doc(svc.id).set(clone(svc)); } catch (e) { break; } } WEB.empty = false; }
+    if ((WEB.pending || []).length) { for (const id of WEB.pending.slice()) { const svc = Lib.items.find((x) => x.id === id); if (!svc) continue; try { await webCol.doc(svc.id).set(clone(svc)); WEB.pending = WEB.pending.filter((x) => x !== id); } catch (e) { break; } } }
     return true;
   }
   const AUTH = { on: false, uid: '', name: '', avatar: '', owner: false, edit: false, write: null }, PROF = {};
@@ -6425,10 +6425,14 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
   }
   /* 앱에 함께 실린 백업(data/backup.json)을, 저장소가 비어 있을 때 한 번 불러온다 */
   async function seed() {
-    if (Lib.items.length) return 0;
+    if (Lib.items.length && !WEB.on) return 0;
     let j = null; try { const r = await fetch('data/backup.json'); if (r.ok) j = await r.json(); } catch (e) { return 0; }
     const list = ((j && j.services) || []).map(normService).filter(Boolean);
     if (!list.length) return 0;
+    if (WEB.on) { // 함께 쓰는 저장소에 아직 없는 예전 예배는 함께 보여 주고, 편집 잠금을 풀면 올린다
+      const have = new Set(Lib.items.map((x) => x.id)), miss = list.filter((x) => !have.has(x.id));
+      WEB.pending = miss.map((x) => x.id); Lib.items = Lib.items.concat(miss); Lib.sort(); return miss.length;
+    }
     if (Lib.ro) { Lib.items = list; Lib.sort(); return list.length; }
     for (const svc of list) { svc._keep = true; try { await Lib.put(svc); } catch (e) { Lib.items = list; Lib.sort(); break; } }
     return list.length;
