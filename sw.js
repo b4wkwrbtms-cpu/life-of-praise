@@ -1,5 +1,5 @@
 /* 생명의 찬양 웹앱: 한 번 연 화면·악보·서식은 기기에 남겨 인터넷이 없어도 열리게 한다 */
-const NAME = 'lop-v6';
+const NAME = 'lop-v7';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'data/backup.json', 'images/dawn.webp', 'icons/icon-192.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(NAME).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== NAME).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });

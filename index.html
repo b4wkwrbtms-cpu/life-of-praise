@@ -462,6 +462,22 @@ kbd{font-size:12px;padding:4px 8px;border-radius:8px;background:var(--pine-soft)
 .mem .role,.mem .rolesel{margin-left:auto;flex:none}
 .rolesel{width:auto!important;min-height:40px!important;padding:0 30px 0 10px!important;font-size:14px!important}
 .tipline{margin:12px 0 0;padding:10px 12px;border-radius:var(--r-ctl);background:var(--ochre-soft);color:var(--ochre);font-size:14px}
+
+/* ── 저장 상태·완료 표시 ── */
+.wbst{flex:1;font-size:14px;font-weight:600;color:var(--sub)}
+.wbst.ok{color:var(--pine)}.wbst.busy{color:var(--sub)}.wbst.bad{color:#b3261e}
+.wbbar .wbretry,.wbretry{min-height:36px;padding:0 12px;border-radius:10px;background:#b3261e;color:#fff;font-weight:700;font-size:13px}
+#bigok{position:fixed;inset:0;z-index:60;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .2s}
+#bigok.on{opacity:1;pointer-events:auto;background:rgba(23,33,28,.25)}
+#bigok>div{display:grid;justify-items:center;gap:8px;min-width:240px;padding:28px 28px 24px;border-radius:24px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.18);text-align:center;transform:scale(.94);transition:transform .25s}
+#bigok.on>div{transform:scale(1)}
+#bigok svg{width:64px;height:64px;fill:none;stroke:var(--pine);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#bigok svg circle{fill:var(--pine-soft);stroke:none}
+#bigok svg path{stroke-dasharray:40;stroke-dashoffset:40;animation:okdraw .45s .1s forwards}
+#bigok b{font-size:20px;color:var(--ink)}#bigok span{font-size:14px;color:var(--sub)}
+@keyframes okdraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){#bigok svg path{animation:none;stroke-dashoffset:0}#bigok>div{transition:none}}
+.wbbar{position:sticky;top:calc(env(safe-area-inset-top) + 108px);z-index:4;box-shadow:0 2px 10px rgba(23,33,28,.06)}
 </style>
 </head>
 <body>
@@ -7542,15 +7558,36 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
 
   const wsong = () => { const s = cur(); if (!s) return null; return s.data.songs.find((x) => x.id === W.songId) || s.data.songs[0] || null; };
   const wpage = () => { const g = wsong(); if (!g || !(g.pages || []).length) return null; W.page = Math.max(0, Math.min(W.page, g.pages.length - 1)); return g.pages[W.page]; };
-  function wbSave() {
-    W.state = '저장 중…'; wbState(); clearTimeout(W.timer);
-    W.timer = setTimeout(() => { const s = cur(); if (!s) return; persist(s).then(() => { W.state = Lib.col ? '서버에 저장됨' : '이 기기에 저장됨'; wbState(); }, () => { W.state = Lib.ro ? '보기 전용이라 저장되지 않습니다' : '저장하지 못했습니다'; wbState(); }); }, 500);
+  /* 저장: 한 번에 하나씩, 실패하면 저절로 세 번 더 시도. 화면에는 「저장 중 / ✓ 저장됨 / 저장 안 됨」 셋만 보인다 */
+  const hhmm = (t) => { const d = new Date(t); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  function wbSave() { W.dirty = true; W.kind = 'busy'; W.state = '저장 중…'; wbState(); clearTimeout(W.timer); W.timer = setTimeout(flushSave, 600); }
+  async function flushSave() {
+    if (W.saving) { W.again = true; return; }
+    const s = cur(); if (!s) return;
+    W.saving = true; W.again = false; W.dirty = false; let ok = false;
+    for (let i = 0; i < 4 && !ok; i++) {
+      try { await persist(s); ok = true; } catch (e) { if (Lib.ro || (e && e.code === 'locked')) break; await sleep([700, 2000, 4500][i] || 0); }
+    }
+    W.saving = false;
+    if (W.again || W.dirty) return flushSave();
+    if (ok) { W.kind = 'ok'; W.state = '✓ 저장됨 · ' + hhmm(Date.now()); } else { W.kind = 'bad'; W.state = Lib.ro ? '보기 전용이라 저장되지 않습니다' : '⚠ 저장 안 됨'; }
+    wbState();
   }
-  const wbState = () => { const el = $('#wb-state'); if (el) el.textContent = W.state; };
+  const wbState = () => { const el = $('#wb-state'); if (!el) return; el.textContent = W.state; el.className = 'wbst ' + (W.kind || ''); const bar = el.closest('.wbbar'); if (bar) { let r = bar.querySelector('.wbretry'); if (W.kind === 'bad' && !Lib.ro) { if (!r) { r = document.createElement('button'); r.className = 'wbretry'; r.dataset.act = 'save-retry'; r.textContent = '다시 저장'; el.after(r); } } else if (r) r.remove(); } };
+  window.addEventListener('online', () => { if (W.kind === 'bad') flushSave(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && (W.kind === 'bad' || W.dirty) && !W.saving) flushSave(); });
+  /* 크게 보이는 완료 표시 */
+  function bigOk(title, sub) {
+    let el = $('#bigok'); if (!el) { el = document.createElement('div'); el.id = 'bigok'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.innerHTML = `<div><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-16"/></svg><b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>`;
+    el.className = 'on'; clearTimeout(el._t); el._t = setTimeout(() => { el.className = ''; }, 2200);
+    el.onclick = () => { el.className = ''; };
+  }
   const wbSnap = () => { const s = cur(); if (!s) return; W.undo.push(JSON.stringify(s.data)); if (W.undo.length > 40) W.undo.shift(); W.redo = []; };
   function wbChange(fn, paintOnly) { if (Lib.ro) return; wbSnap(); fn(); wbSave(); if (paintOnly) { wbButtons(); paintScore(); } else renderWB(); }
   const wbButtons = () => { const u = $('#wb-undo'), r = $('#wb-redo'); if (u) u.disabled = !W.undo.length; if (r) r.disabled = !W.redo.length; };
-  function wbOpen(tab, songId, pane) { W.tab = tab || 'word'; if (songId) W.songId = songId; W.pane = pane || 'set'; W.page = 0; W.mode = 'scroll'; W.placing = null; W.sel = ''; W.controls = false; W.zoom = 100; W.undo = []; W.redo = []; W.picker = ''; W.arm = ''; W.state = Lib.col ? '서버에 저장됨' : '이 기기에 저장됨'; go('score'); }
+  function wbOpen(tab, songId, pane) { W.tab = tab || 'word'; if (songId) W.songId = songId; W.pane = pane || 'set'; W.page = 0; W.mode = 'scroll'; W.placing = null; W.sel = ''; W.controls = false; W.zoom = 100; W.undo = []; W.redo = []; W.picker = ''; W.arm = ''; W.kind = 'ok'; W.state = Lib.col ? '✓ 저장됨' : '✓ 이 기기에 저장됨'; go('score'); }
   const adj = (label, key, kind, min, max, step, value, disabled) => `<div class="adj"><p><span>${label}</span><b id="adj-${kind}-${key}">${(value * 100).toFixed(1).replace(/\.0$/, '')}%</b></p><div><button data-act="wb-adj" data-k="${key}" data-kind="${kind}" data-d="${-step}" ${disabled ? 'disabled' : ''} aria-label="${label} 줄이기">−</button><input type="range" data-adj="${key}" data-kind="${kind}" min="${min}" max="${max}" step="${step}" value="${value}" ${disabled ? 'disabled' : ''} aria-label="${label}"><button data-act="wb-adj" data-k="${key}" data-kind="${kind}" data-d="${step}" ${disabled ? 'disabled' : ''} aria-label="${label} 늘리기">+</button></div></div>`;
   function renderWB() {
     const el = $('#wb'), svc = cur(); if (!el || !svc || $('#v-score').hidden) return;
@@ -7612,7 +7649,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       body = strip + detail;
     }
     el.innerHTML = `<div class="wbtop"><h2>예배 준비</h2>${pubBtn(svc, 'pub')}</div>
-      <div class="wbbar"><span id="wb-state">${esc(W.state)}</span><button id="wb-undo" data-edit data-act="wb-undo" ${W.undo.length ? '' : 'disabled'}>↶ 되돌리기</button><button id="wb-redo" data-edit data-act="wb-redo" ${W.redo.length ? '' : 'disabled'}>↷ 다시 실행</button></div>
+      <div class="wbbar"><span id="wb-state" class="wbst ${W.kind || ''}">${esc(W.state)}</span>${W.kind === 'bad' && !Lib.ro ? '<button class="wbretry" data-act="save-retry">다시 저장</button>' : ''}<button id="wb-undo" data-edit data-act="wb-undo" ${W.undo.length ? '' : 'disabled'}>↶ 되돌리기</button><button id="wb-redo" data-edit data-act="wb-redo" ${W.redo.length ? '' : 'disabled'}>↷ 다시 실행</button></div>
       <div class="wbseg"><button data-act="wb-tab" data-v="word" class="${W.tab === 'word' ? 'on' : ''}">01 · 말씀과 예배</button><button data-act="wb-tab" data-v="songs" class="${W.tab === 'songs' ? 'on' : ''}">02 · 찬양과 송폼 <i>${songs.length}</i></button></div>${body}
       ${W.tab === 'songs' && g ? `<div class="dock duo"><div><button class="btn ${W.pane === 'set' ? '' : 'sec'}" data-act="wb-pane" data-v="set">곡 · 송폼 설정</button><button class="btn ${W.pane === 'score' ? '' : 'sec'}" data-act="wb-pane" data-v="score">악보 · 구간 표시</button></div></div>` : ''}`;
     if (svc.fixed) { const pb = el.querySelector('.pub'); if (pb) pb.hidden = true; }
@@ -7756,6 +7793,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     const a = b.dataset.act, i = +b.dataset.i, id = b.dataset.id;
     if (PS.open && (a === 'dl' || a === 'dl-pdf')) setTimeout(() => renderPS(true), 40);
     if (a.indexOf('wb-') === 0) return wbClick(a, b);
+    if (a === 'save-retry') { W.kind = 'busy'; W.state = '다시 저장하는 중…'; wbState(); return flushSave(); }
     if (a === 'sso') return signIn(b.dataset.v);
     if (a === 'sso-out') { signOut(); toast('로그아웃했습니다.'); syncSet(); return renderHome(); }
     if (a === 'web-unlock' || a === 'web-set') { const st = $('#wp-status'), fresh = a === 'web-set', v = ($(fresh ? '#wp-new' : '#wp-pass').value || '').trim(); if (v.length < (fresh ? 6 : 1)) { st.textContent = fresh ? '암호는 6자 이상으로 정해 주세요.' : '암호를 넣어 주세요.'; st.className = 'status warn'; return; }
@@ -7853,7 +7891,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       S.pubBusy = svc.id; if (!$('#v-score').hidden) renderWB(); else renderLib();
       svc.version = (svc.version || 0) + 1; svc.published = true; svc.noticeAt = Date.now(); svc.history = (svc.history || []).concat([{ version: svc.version, at: svc.noticeAt, data: clone(svc.data) }]).slice(-6); SEEN[svc.id] = svc.version; LSset('lop-seen', SEEN);
       persist(svc).then(async () => { for (const o of old) { o.published = false; o._keep = true; try { await Lib.put(o); } catch (e) { /* 예전 것은 그대로 둔다 */ } }
-        S.pubBusy = null; toast(first ? '✓ 도서관에 올라갔습니다' + (old.length ? ' (같은 날 예전 것은 초안으로 옮김)' : '') : '✓ 바뀐 내용을 팀에 알렸습니다 · v' + svc.version); syncSet(); if (!$('#v-score').hidden) renderWB(); renderLib(); renderHome(); },
+        S.pubBusy = null; W.kind = 'ok'; W.state = '✓ 저장됨 · ' + hhmm(Date.now()); bigOk(first ? '팀에 올라갔습니다' : '팀에 알렸습니다', first ? '도서관에 들어갔습니다' + (old.length ? ' · 같은 날 예전 것은 초안으로' : '') : '바뀐 내용 · v' + svc.version); syncSet(); if (!$('#v-score').hidden) renderWB(); renderLib(); renderHome(); },
         (e) => { S.pubBusy = null; svc.published = !first; svc.version--; svc.history.pop(); if (!$('#v-score').hidden) renderWB(); renderLib(); fail(e); }); }
     else if (a === 'svc-unpub') { const svc = cur(); if (svc) { svc.published = false; persist(svc).then(renderLib, fail); } }
     else if (a === 'ver-back') { const svc = cur(), h = svc && (svc.history || []).find((y) => y.version === i); if (h) { if (S.delArm !== 'ver' + i) { S.delArm = 'ver' + i; renderLib(); } else { S.delArm = null; svc.data = clone(h.data); persist(svc).then(renderLib, fail); } } }
