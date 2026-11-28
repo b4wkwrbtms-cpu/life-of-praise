@@ -478,6 +478,12 @@ kbd{font-size:12px;padding:4px 8px;border-radius:8px;background:var(--pine-soft)
 @keyframes okdraw{to{stroke-dashoffset:0}}
 @media (prefers-reduced-motion:reduce){#bigok svg path{animation:none;stroke-dashoffset:0}#bigok>div{transition:none}}
 .wbbar{position:sticky;top:calc(env(safe-area-inset-top) + 108px);z-index:4;box-shadow:0 2px 10px rgba(23,33,28,.06)}
+
+/* 가사 빠진 절 안내 */
+.missbox{margin:0 0 14px;padding:14px 16px;border-radius:var(--r-ctl);background:#fdf1ef;border:1px solid #f2cfc9}
+.missbox b{display:block;color:#a3261b;font-size:15px;margin-bottom:6px}
+.missbox p{margin:2px 0;font-size:15px;color:var(--ink)}.missbox em{font-style:normal;font-weight:800;color:#a3261b}
+.missbox span{display:block;margin-top:8px;font-size:13px;color:var(--sub)}
 </style>
 </head>
 <body>
@@ -6325,12 +6331,13 @@ const SF = (() => {
     return song;
   }
 
-  const AI_PROMPT = (pages, split) => `너는 찬양 악보를 읽는 도구다. 첨부한 이미지는 찬양 악보 ${pages}쪽이다.${split ? ' 글자가 잘 보이도록 각 쪽을 위 조각, 아래 조각 순서로 잘라서 보냈고 두 조각은 조금 겹친다. 겹친 부분의 가사를 두 번 적지 마라.' : ''} 악보에 인쇄되었거나 손으로 적힌 가사와 송폼(곡 진행 순서)을 읽어 아래 형식의 JSON 하나만 답하라. 설명 문장은 쓰지 마라.
+  const AI_PROMPT = (pages, split, formHint, need) => `너는 찬양 악보를 읽는 도구다. 첨부한 이미지는 찬양 악보 ${pages}쪽이다.${formHint ? ' 이 곡을 부르는 순서(송폼)는 「' + formHint + '」다. 이 순서에 나오는 절과 후렴의 가사를 모두 찾아라.' : ''}${need && need.length ? ' 특히 ' + need.join(', ') + ' 가사가 아직 없다. 이 절들을 반드시 찾아 적어라.' : ''}${split ? ' 글자가 잘 보이도록 각 쪽을 위 조각, 아래 조각 순서로 잘라서 보냈고 두 조각은 조금 겹친다. 겹친 부분의 가사를 두 번 적지 마라.' : ''} 악보에 인쇄되었거나 손으로 적힌 가사와 송폼(곡 진행 순서)을 읽어 아래 형식의 JSON 하나만 답하라. 설명 문장은 쓰지 마라.
 
 규칙
 1. 눈에 보이는 글자만 옮긴다. 아는 곡이라도 기억으로 가사를 채우거나 지어내지 않는다. 읽지 못한 글자는 [?]로 남기고 unreadable에 어디인지 적는다.
 2. 한 단(한 줄의 오선) 아래에 가사가 두 줄 이상 겹쳐 적혀 있으면 각 가사 줄은 서로 다른 절이다. 줄 앞에 "1." "2." 같은 번호가 있으면 번호가 우선이고, 없으면 윗줄이 1절, 아랫줄이 2절이다. 먼저 각 단에 가사 줄이 몇 줄인지 세고, 1절은 모든 단의 첫째 줄만, 2절은 모든 단의 둘째 줄만 이어서 읽는다. 위아래 줄을 한 줄로 이어 붙이지 않는다.
 3. 가사가 세 줄, 네 줄 겹쳐 있으면 3절, 4절까지 있다. 절은 멜로디가 같아도 V1, V2, V3, V4로 나눠 따로 적는다. 가사가 한 줄만 있는 후렴·브릿지는 한 섹션이다.
+3-1. 2절·3절 가사는 1절과 같은 자리에 겹쳐 있지 않고, 악보 뒷부분(예: 후렴 뒤, D.S.로 돌아오는 단)에 "2." "3." 번호와 함께 따로 적혀 있는 경우가 많다. 이때 그 단들의 가사가 2절·3절의 전부이거나 일부다. 1절 자리의 멜로디를 따라 다시 부른다고 보고 V2, V3로 따로 적는다. 2절·3절 가사가 일부만 적혀 있으면 적힌 만큼만 적고 confidence를 낮춘다.
 4. 도돌이표, 1번·2번 괄호, D.S., Coda가 있으면 절마다 실제로 부르는 마디 순서대로 펼쳐서 그 절의 가사를 만든다. 1번 괄호 안 가사는 1절에만, 2번 괄호 안 가사는 2절에만 넣는다.
 5. lines는 부르는 프레이즈 단위(쉼표, 긴 음표, 마디 끝의 숨 쉬는 자리)로 나눈다. 한 줄은 대략 한글 5~14자다. 음절 사이의 하이픈과 늘임표는 지우고 띄어쓰기를 되살린다.
 6. label은 악보에 적힌 기호를 그대로 쓴다(V1, C, B, A, 후렴 등). 박스 글자 A·B·C만 있으면 그 글자를 그대로 쓰고 type은 "other"로 둔다. 기호가 전혀 없으면 V1, V2, C, B처럼 붙이고 confidence를 낮춘다.
@@ -7140,7 +7147,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       [sec.label, p.label, base + (p.number || ''), p.number ? null : base].forEach((k) => { if (k && !(k in lyrics)) lyrics[k] = text; });
     });
     let order = []; try { order = LOP.parseCongregationForm(formText); } catch (e) { /* 아래에서 경고 */ }
-    order.forEach((k) => { if (k in lyrics) return; const bare = k.replace(/\d+$/, ''); if (bare !== k && bare in lyrics && !order.includes(bare)) lyrics[k] = lyrics[bare]; else if (/^[A-Za-z]+$/.test(k) && (k + '1') in lyrics && !order.includes(k + '1')) lyrics[k] = lyrics[k + '1']; });
+    order.forEach((k) => { if (k in lyrics) return; const bare = k.replace(/\d+$/, ''), sib = order.some((o) => o !== k && o !== bare && o.replace(/\d+$/, '') === bare); if (bare !== k && bare in lyrics && !order.includes(bare) && (/(^|\D)1$/.test(k) || !sib)) lyrics[k] = lyrics[bare]; else if (/^[A-Za-z]+$/.test(k) && (k + '1') in lyrics && !order.includes(k + '1')) lyrics[k] = lyrics[k + '1']; });
     return { formText, lyrics };
   }
   function lopDeck(items) {
@@ -7272,7 +7279,15 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
   /* ───── 한 번에 읽기: 예배의 곡을 순서대로 AI가 읽어 가사를 채우고, 바로 PPT에서 고친다 ───── */
   const BA = { run: false, state: {}, ctl: null, note: '' };
   const songHasLyrics = (g) => (g.lyrics || []).some((l) => (l.lines || []).join('').trim());
-  const batchTargets = () => { const svc = cur(); return svc ? svc.data.songs.filter((g) => !songHasLyrics(g) && (g.pages || []).length) : []; };
+  const NOLYR = /^(INTRO|INTER|INTERLUDE|OUTRO|ENDING|I|O|INST|INSTRUMENTAL|간주|전주|후주|반주)$/;
+  const normSec = (t) => { let k = String(t || '').replace(/\s*[xX×]\s*\d+$/, '').replace(/\s+/g, '').toUpperCase(); k = k.replace(/^VERSE/, 'V').replace(/^CHORUS/, 'C').replace(/^PRECHORUS|^PRE-CHORUS/, 'PC').replace(/^B(?=\d*$)/, 'BRIDGE').replace(/^후렴/, 'C').replace(/^브릿지/, 'BRIDGE'); return k === 'V' ? 'V1' : k; };
+  function songMissing(g) { // 송폼 순서에 있는데 가사가 없는 구간 (간주·전주·후주 제외)
+    if (!songHasLyrics(g)) return [];
+    const have = new Set((g.lyrics || []).filter((l) => (l.lines || []).join('').trim()).map((l) => normSec(l.label || ((l.type === 'verse' ? 'V' : '') + (l.number || '')))));
+    const out = []; (g.form || []).forEach((f) => { const k = normSec(f.type); if (!k || NOLYR.test(k) || have.has(k) || out.includes(k)) return; if (/^V1$/.test(k) && have.has('V')) return; out.push(k); });
+    return out;
+  }
+  const batchTargets = () => { const svc = cur(); return svc ? svc.data.songs.filter((g) => (g.pages || []).length && (!songHasLyrics(g) || songMissing(g).length)) : []; };
   async function batchAI(onlyId) {
     const svc = cur(); if (!svc || BA.run || Lib.ro) return;
     const list = batchTargets().filter((g) => !onlyId || g.id === onlyId); if (!list.length) return;
@@ -7290,16 +7305,20 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
         if (!ims.length) throw { code: 'no_image' };
         const split = ims.length * 2 <= caps.images.maxCount; let blobs = [];
         if (split) for (const im of ims) blobs = blobs.concat(await halves(im)); else for (const im of ims) blobs.push(await canvasBlob(ensureCanvas(im)));
-        const j = await sample.json(SF.AI_PROMPT(ims.length, split), { images: blobs, modelTier: 'complex', cache: false, signal: BA.ctl.signal, onText: ({ text }) => { BA.state[g0.id] = 'read:' + text.length; renderBatch(true); } });
+        const need = songMissing(g0), formHint = (g0.form || []).map((f) => f.type).join(' - ');
+        const j = await sample.json(SF.AI_PROMPT(ims.length, split, formHint, need), { images: blobs, modelTier: 'complex', cache: false, signal: BA.ctl.signal, onText: ({ text }) => { BA.state[g0.id] = 'read:' + text.length; renderBatch(true); } });
         if (!j || typeof j !== 'object' || !Array.isArray(j.sections)) throw { code: 'invalid_json' };
         const now = cur(), k = now ? now.data.songs.findIndex((x) => x.id === g0.id) : -1; if (k < 0) { BA.state[g0.id] = 'gone'; continue; }
         const g = now.data.songs[k], letters = Object.assign({}, SF.LETTER_PRESETS.vcb, g.letters || {}), read = SF.fromAI(j, SF.buildDict(letters)), e = toEditor(g);
-        e.sections = read.sections; e.formSource = read.formSource; e.unreadable = read.unreadable;
+        if (need.length && songHasLyrics(g)) { // 사람이 고친 가사는 두고, 빠진 절만 보탠다
+          const add = read.sections.filter((x) => need.includes(normSec(x.label)) && x.lines.join('').trim());
+          e.sections = e.sections.concat(add); e.unreadable = read.unreadable;
+        } else { e.sections = read.sections; e.formSource = read.formSource; e.unreadable = read.unreadable; }
         if (!e.form.trim()) e.form = read.form; if (!e.title) e.title = read.title; if (!e.key) e.key = read.key;
         const keep = S.letters; S.letters = letters; const out = fromEditor(e); S.letters = keep; out.aiRead = true;
         now.data.songs[k] = out; await persist(now);
         if (S.song && S.song.id === out.id) S.song = toEditor(out);
-        BA.state[g0.id] = read.sections.some((x) => x.lines.length) ? 'done' : 'empty';
+        BA.state[g0.id] = songMissing(out).length ? 'part:' + songMissing(out).join('·') : read.sections.some((x) => x.lines.length) ? 'done' : 'empty';
       } catch (err) {
         if (err && err.code === 'cancelled') { BA.state[g0.id] = 'stop'; break; }
         BA.state[g0.id] = 'fail:' + ((err && err.code === 'no_image' && '악보 그림을 불러오지 못했습니다.') || AI_ERR[err && err.code] || '읽지 못했습니다. 다시 눌러 주세요.');
@@ -7344,12 +7363,14 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     const el = $('#ps'); if (!PS.open) return; const svc = cur(); if (!svc) return closePS();
     S.mode = 'set'; const o = S.opts, D = deck(), view = D.all || D.slides, lop = !!D.lop; PS.i = Math.max(0, Math.min(PS.i, view.length - 1));
     const targets = batchTargets(), noScore = svc.data.songs.filter((g) => !songHasLyrics(g) && !(g.pages || []).length), tracked = svc.data.songs.filter((g) => BA.state[g.id]), s = view[PS.i], real = D.slides.length, hasLyr = D.slides.some((x) => x.kind === 'lyrics' || x.kind === 'lyric');
-    const label = (v) => { v = String(v); return v === 'wait' ? '기다리는 중' : v.indexOf('read') === 0 ? '읽는 중…' : v === 'done' ? '읽음' : v === 'empty' ? '가사를 찾지 못했습니다' : v === 'stop' ? '멈춤' : v.indexOf('fail:') === 0 ? v.slice(5) : ''; };
+    const label = (v) => { v = String(v); return v === 'wait' ? '기다리는 중' : v.indexOf('read') === 0 ? '읽는 중…' : v === 'done' ? '읽음' : v === 'empty' ? '가사를 찾지 못했습니다' : v === 'stop' ? '멈춤' : v.indexOf('fail:') === 0 ? v.slice(5) : v.indexOf('part:') === 0 ? '읽었지만 ' + v.slice(5) + ' 가사를 찾지 못했습니다' : ''; };
     const prev = `<div class="psprev">${s && lop ? `<div ${Lib.ro ? '' : `data-act="sl-edit" data-i="${PS.i}" role="button" tabindex="0" aria-label="이 슬라이드 고치기"`} class="${s.placeholder ? 'ph' : ''}">${lopSlideHtml(s, D)}</div>` : `<p class="psempty">${BA.run ? 'AI가 악보를 읽는 중입니다. 읽은 곡부터 여기에 보입니다.' : '가사가 준비된 곡부터 미리 볼 수 있습니다.'}</p>`}
       <div class="psnav"><b>${hasLyr ? '슬라이드 ' + (PS.i + 1) + ' / ' + view.length + '장' : '슬라이드 0장'}</b>${s && lop ? `<span>${esc(s.kind === 'cover' ? '예배 표지' : s.kind === 'song' ? '곡 제목' : (s.item && s.item.song.title ? s.item.song.title + ' · ' : '') + s.section)}</span>` : ''}<button data-act="ps-go" data-d="-1" ${PS.i > 0 ? '' : 'disabled'} aria-label="이전 슬라이드">‹</button><button data-act="ps-go" data-d="1" ${PS.i < view.length - 1 ? '' : 'disabled'} aria-label="다음 슬라이드">›</button></div></div>${s && lop && !Lib.ro ? '<p class="muted pstip">슬라이드를 누르면 그 자리에서 고칠 수 있습니다.</p>' : ''}`;
-    const rows = svc.data.songs.map((g) => { const v = String(BA.state[g.id] || ''), has = songHasLyrics(g), txt = label(v) || (has ? (g.aiRead ? 'AI가 읽음 · 확인 필요' : '가사 준비됨') : (g.pages || []).length ? '가사 대기' : '악보 없음'); return `<div class="brow ${v.indexOf('fail') === 0 || v === 'empty' ? 'bad' : v.indexOf('read') === 0 ? 'on' : has ? 'ok' : ''}"><b>${esc(g.title || '제목 없음')}</b><span data-b="${esc(g.id)}">${esc(txt)}</span></div>`; }).join('');
-    const stat = `<h3 class="psh">${BA.run ? 'AI가 악보를 읽는 중' : targets.length ? '회중 가사 준비 대기' : '회중 가사 준비됨'}</h3>${BA.note ? `<p class="status" role="status">${esc(BA.note)}</p>` : ''}${rows}
-      ${BA.run ? '<button class="btn sec" data-act="batch-stop">읽기 멈추기</button>' : targets.length && !Lib.ro ? `<button class="btn" data-act="batch-go">AI로 ${targets.length}곡 가사 읽기</button>` : ''}${noScore.length ? '<p class="muted">악보가 없는 곡은 아래 "가사·송폼 직접 수정"에서 가사를 넣어 주세요.</p>' : ''}
+    const rows = svc.data.songs.map((g) => { const v = String(BA.state[g.id] || ''), has = songHasLyrics(g), miss = songMissing(g), txt = label(v) || (miss.length ? miss.join('·') + ' 가사 빠짐' : has ? (g.aiRead ? 'AI가 읽음 · 확인 필요' : '가사 준비됨') : (g.pages || []).length ? '가사 대기' : '악보 없음'); return `<div class="brow ${v.indexOf('fail') === 0 || v === 'empty' || miss.length ? 'bad' : v.indexOf('read') === 0 ? 'on' : has ? 'ok' : ''}"><b>${esc(g.title || '제목 없음')}</b><span data-b="${esc(g.id)}">${esc(txt)}</span></div>`; }).join('');
+    const missAll = svc.data.songs.map((g) => ({ g, m: songMissing(g) })).filter((x) => x.m.length), aiOK = !WEB.on;
+    const missBox = missAll.length && !BA.run ? `<div class="missbox"><b>송폼에는 있는데 가사가 없는 절</b>${missAll.map((x) => `<p>${esc(x.g.title || '제목 없음')} — <em>${x.m.join(', ')}</em></p>`).join('')}<span>${aiOK ? '아래 「AI로 가사 읽기」를 누르면 빠진 절만 악보에서 다시 읽어 채웁니다. 직접 넣으려면 점선 슬라이드를 누르세요.' : '이 절들은 PPT에서 빠집니다. 미리보기의 점선 슬라이드(「${missAll[0].m[0]} 가사 없음」)를 눌러 가사를 넣으면 그대로 PPT에 들어갑니다.'}</span></div>` : '';
+    const stat = missBox + `<h3 class="psh">${BA.run ? 'AI가 악보를 읽는 중' : targets.length ? '회중 가사 준비 대기' : '회중 가사 준비됨'}</h3>${BA.note ? `<p class="status" role="status">${esc(BA.note)}</p>` : ''}${rows}
+      ${BA.run ? '<button class="btn sec" data-act="batch-stop">읽기 멈추기</button>' : targets.length && !Lib.ro && aiOK ? `<button class="btn" data-act="batch-go">AI로 ${targets.length}곡 가사 읽기</button>` : ''}${noScore.length ? '<p class="muted">악보가 없는 곡은 아래 "가사·송폼 직접 수정"에서 가사를 넣어 주세요.</p>' : ''}
       ${svc.data.songs.some((g) => g.aiRead) && !BA.run && !Lib.ro ? '<button class="btn sec" data-act="ai-ok">AI가 읽은 가사, 확인했어요</button>' : ''}`;
     const foot = `<p id="ps-status" class="status" role="status">${esc($('#dl-status').textContent || '')}</p><p class="pscount">${targets.length ? '가사 대기 ' + targets.length + '곡 · ' : ''}슬라이드 ${real}장${D.warnings.length ? ' · 확인할 것 ' + D.warnings.length + '개' : ''}</p>
       <div class="psbtns"><button class="btn sec" data-act="dl-pdf" ${hasLyr && !S.busy ? '' : 'disabled'}>PDF 받기</button><button class="btn" data-act="dl" ${hasLyr && !S.busy ? '' : 'disabled'}>PPTX 받기</button></div>`;
@@ -7386,7 +7407,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     el.innerHTML = `<div class="sheet"><header><h3>${s.kind === 'cover' ? '예배 표지 고치기' : s.kind === 'song' ? '곡 제목 고치기' : esc(s.item.song.title || '') + ' · ' + esc(s.section)}</h3><button data-act="sl-close">닫기</button></header><div class="sebody">${body}<button class="btn" data-act="sl-save">고친 내용 저장</button><p id="se-status" class="status" role="status"></p></div></div>`;
     el.hidden = false; const f = el.querySelector('textarea,input'); if (f) f.focus();
   }
-  function slideSection(s) { const secs = s.item.song.sections, d = SF.buildDict(s.item.letters), k = s.section, bare = k.replace(/\d+$/, ''); return secs.find((x) => x.label === k) || secs.find((x) => { const p = SF.parseLabel(x.label, d), base = p.base === 'BRIDGE' ? 'Bridge' : p.base; return base + (p.number || '') === k || (!p.number && base === k); }) || secs.find((x) => x.label === bare) || secs.find((x) => x.label === k + '1') || null; }
+  function slideSection(s) { const secs = s.item.song.sections, d = SF.buildDict(s.item.letters), k = s.section, bare = k.replace(/\d+$/, ''); return secs.find((x) => x.label === k) || secs.find((x) => { const p = SF.parseLabel(x.label, d), base = p.base === 'BRIDGE' ? 'Bridge' : p.base; return base + (p.number || '') === k || (!p.number && base === k); }) || (s.placeholder || (bare !== k && !/(^|\D)1$/.test(k)) ? null : secs.find((x) => x.label === bare)) || secs.find((x) => x.label === k + '1') || null; }
   async function slideSave() {
     const s = ED.slide, msg = $('#se-status'), svc = cur(); if (!s) return;
     try {
