@@ -229,6 +229,7 @@ nav.bottom>div{grid-template-columns:repeat(5,1fr);max-width:640px}nav.bottom bu
 .wbtop{display:flex;align-items:center;gap:8px;margin:14px 0 10px}.wbtop h2{font:800 24px/1.2 Pretendard,-apple-system,sans-serif;margin:0;flex:none}
 #wb-state{flex:1;min-width:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wbtop button{flex:none;width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:#fffefb;font-size:20px;color:var(--text)}
+.wbtop .pub.done,.btn.done{background:#e6efe9;border-color:#c9dccf;color:#1f5a3c}.wbtop .pub:disabled,.btn:disabled{opacity:1;cursor:default}
 .wbtop h2{flex:1}.wbtop .pub{width:auto;padding:0 16px;background:var(--accent);border-color:var(--accent);color:#fff;font-size:15px;font-weight:700}
 .wbseg{display:inline-flex;gap:4px;background:var(--panel2);border-radius:18px;padding:5px;margin-bottom:14px;max-width:100%}
 .wbseg button{min-height:44px;padding:0 14px;border-radius:14px;color:var(--muted);font-size:15px;white-space:nowrap}.wbseg button.on{background:#fffefb;color:var(--text);font-weight:600;box-shadow:0 2px 8px #20403018}.wbseg i{font-style:normal;margin-left:6px;background:#fffefb;border-radius:8px;padding:2px 8px;font-size:13px}
@@ -6477,6 +6478,15 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
   }
   const allLists = () => { const out = ['주일예배', '금요철야']; Lib.live.forEach((x) => { if (!x.fixed && x.data.listName && !out.includes(x.data.listName) && x.data.listName !== '미분류') out.push(x.data.listName); }); MYLISTS.forEach((n) => { if (!out.includes(n) && n !== '미분류') out.push(n); }); return out.concat(['미분류']); };
   const inList = (x) => !S.list || listOf(x.data) === S.list;
+  const slotKey = (x) => listOf(x.data) + '|' + x.data.date;
+  const isEmptySvc = (x) => !x.data.songs.some((g) => (g.title || '').trim() || (g.pages || []).length) && !(x.data.passage || '').trim();
+  const newestFirst = (a, b) => (b.noticeAt || 0) - (a.noticeAt || 0) || (b.updated || 0) - (a.updated || 0);
+  const onePerSlot = (list) => { const m = new Map(); list.slice().sort(newestFirst).forEach((x) => { if (!m.has(slotKey(x))) m.set(slotKey(x), x); }); return list.filter((x) => m.get(slotKey(x)) === x); };
+  const pubState = (svc) => { if (!svc.published) return 'draft'; const h = (svc.history || []).slice(-1)[0]; if (!h) return 'done'; return JSON.stringify(h.data) === JSON.stringify(svc.data) ? 'done' : 'changed'; };
+  const pubBtn = (svc, cls) => { const st = pubState(svc);
+    if (S.pubBusy === svc.id) return `<button class="${cls}" disabled>올리는 중…</button>`;
+    if (st === 'draft') return `<button class="${cls}" data-edit data-act="svc-publish">완성해서 팀에 올리기</button>`;
+    return `<button class="${cls} done" ${st === 'changed' ? 'data-edit data-act="svc-publish"' : 'disabled'}>${st === 'changed' ? '바뀐 내용 알리기' : '✓ 올라감 · v' + svc.version}</button>`; };
   const listPills = () => `<div class="pilltabs lists"><button data-act="list" data-v="" class="${S.list ? '' : 'on'}">전체</button>${allLists().map((n) => `<button data-act="list" data-v="${esc(n)}" class="${S.list === n ? 'on' : ''}">${esc(n)}</button>`).join('')}<button data-edit data-act="list-add">+ 목록 추가</button></div>`;
   const ago = (t) => { const d = new Date(t); return isNaN(d) ? '' : (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
   /* 알림: 팀에 공개된 예배. 확인 여부는 이 기기에 적는다 */
@@ -6585,7 +6595,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       }
     }
     if (!$('#v-library').hidden) {
-      const all = Lib.live.filter((x) => !x.fixed && inList(x)), pub = all.filter((x) => x.published), dr = all.filter((x) => !x.published), bin = Lib.items.filter((x) => x.deleted), tab = S.libTab || 'svc', q = (S.q || '').trim().toLowerCase();
+      const all = Lib.live.filter((x) => !x.fixed && inList(x)), pub = onePerSlot(all.filter((x) => x.published)), dr = all.filter((x) => !x.published && !isEmptySvc(x)), bin = Lib.items.filter((x) => x.deleted), tab = S.libTab || 'svc', q = (S.q || '').trim().toLowerCase();
       $('#lib-lists').innerHTML = listPills();
       $('#lib-tabs').innerHTML = [['svc', '예배별 · ' + pub.length], ['song', '곡별 찾기'], ['draft', '초안 · ' + dr.length], ['bin', '휴지통' + (bin.length ? ' · ' + bin.length : '')]].map(([k, t]) => `<button data-act="lib-tab" data-v="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('');
       const hit = (svc) => !q || [svc.data.title, svc.data.date, svc.data.passage].concat(svc.data.songs.map((x) => x.title)).join(' ').toLowerCase().includes(q);
@@ -6593,7 +6603,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       if (!Lib.ready) html = wait;
       else if (tab === 'song') {
         const seen = new Map();
-        Lib.live.forEach((svc) => svc.data.songs.forEach((x) => { const t = (x.title || '').trim(); if (!t) return; const o = seen.get(t); if (!o) seen.set(t, { svc, x, n: 1 }); else o.n++; }));
+        Lib.live.filter((s) => s.fixed || (s.published && pub.includes(s))).forEach((svc) => svc.data.songs.forEach((x) => { const t = (x.title || '').trim(); if (!t) return; const o = seen.get(t); if (!o) seen.set(t, { svc, x, n: 1 }); else o.n++; }));
         const rows = [...seen.values()].filter((r) => !q || (r.x.title + ' ' + (r.x.key || '')).toLowerCase().includes(q)).sort((a, b) => a.x.title.localeCompare(b.x.title, 'ko'));
         html = rows.map((r) => `<button class="songrow" data-act="card-song" data-id="${esc(r.svc.id)}|${esc(r.x.id)}"><b>${esc(r.x.title)}${r.x.key ? `<kbd>${esc(r.x.key)}</kbd>` : ''}</b><span class="form">${formHtml(r.x)}</span><small>${r.svc.fixed ? '고정찬양' : esc(r.svc.date)} · ${r.n}번 사용 · 악보 ${(r.x.pages || []).length}페이지${(r.x.lyrics || []).length ? ' · 가사 있음' : ''}</small></button>`).join('') || '<div class="empty"><b>찾는 곡이 없습니다</b></div>';
       } else if (tab === 'bin') html = bin.map((x) => `<article class="svc"><p class="meta"><b>${esc(x.data.date)}</b><span>지움 · ${ago(x.deleted)}</span></p><h3>${esc(x.data.title)}</h3><p class="pass">${x.data.songs.length}곡</p><div class="acts" data-edit><button class="btn sec" data-act="bin-back" data-id="${esc(x.id)}">되살리기</button><button class="btn sec" data-act="bin-kill" data-id="${esc(x.id)}">${S.delArm === 'kill' + x.id ? '정말 완전히 지우기' : '완전히 지우기'}</button></div></article>`).join('') || '<div class="empty"><b>휴지통이 비어 있습니다</b></div>';
@@ -6653,8 +6663,8 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     $('#svc-del').textContent = S.delArm === 'svc' ? '정말 휴지통으로' : '휴지통으로';
     if (svc) {
       const ls = $('#w-listName'); if (document.activeElement !== ls) ls.innerHTML = allLists().map((n) => `<option ${listOf(svc.data) === n ? 'selected' : ''}>${esc(n)}</option>`).join('');
-      $('#pub').innerHTML = svc.fixed ? '' : `<p class="meta"><b>${svc.published ? '팀 공개 · v' + svc.version : '초안'}</b><span>${svc.published ? '고친 내용은 바로 팀에 보입니다. 크게 바꿨으면 새 버전으로 다시 알려 주세요.' : '아직 팀에 알리지 않았습니다.'}</span></p>
-        <div class="acts" data-edit><button class="btn" data-act="svc-publish">${svc.published ? '새 버전으로 다시 공개 (v' + (svc.version + 1) + ')' : '팀에 공개'}</button>${svc.published ? '<button class="btn sec" data-act="svc-unpub">초안으로 내리기</button>' : ''}</div>
+      $('#pub').innerHTML = svc.fixed ? '' : `<p class="meta"><b>${svc.published ? '도서관에 올라감 · v' + svc.version : '초안'}</b><span>${svc.published ? '고친 내용은 저장하면 바로 팀에 보입니다. 다시 올릴 필요 없습니다.' : '완성하면 올려 주세요. 올리면 도서관에 들어갑니다.'}</span></p>
+        <div class="acts" data-edit>${pubBtn(svc, 'btn')}${svc.published ? '<button class="btn sec" data-act="svc-unpub">초안으로 내리기</button>' : ''}</div>
         ${(svc.history || []).length ? `<details><summary>이전 버전 ${svc.history.length}개</summary>${svc.history.slice().reverse().map((h) => `<div class="librow two"><span class="t"><b>v${h.version}</b><small>${ago(h.at)} · ${h.data.songs.length}곡</small></span><button class="mini" data-edit data-act="ver-back" data-i="${h.version}">${S.delArm === 'ver' + h.version ? '정말 되돌리기' : '이 버전으로'}</button></div>`).join('')}</details>` : ''}`;
     }
     el.innerHTML = !svc ? '<p class="muted">"새 예배"를 누르거나, 아래에서 곡을 만들면 이번 주 예배가 생깁니다.</p>'
@@ -7336,7 +7346,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
         <label class="f" for="wf-scripture">본문 말씀</label><textarea id="wf-scripture" data-wf="scripture" rows="8" placeholder="이번 주 본문 말씀을 붙여넣어 주세요.">${esc(d.scripture)}</textarea>
         <label class="f" for="wf-rehearsal">연습 안내</label><textarea id="wf-rehearsal" data-wf="rehearsal" rows="2" placeholder="예: 토요일 오후 4시 본당">${esc(d.rehearsal)}</textarea>
         <label class="f" for="wf-notice">공지</label><textarea id="wf-notice" data-wf="notice" rows="2">${esc(d.notice)}</textarea></div>
-        ${svc.fixed ? '' : `<div class="svc" style="margin-top:16px"><p class="meta"><b>${svc.published ? '팀 공개 · v' + svc.version : '초안'}</b></p><p class="pass">${svc.published ? '고친 내용은 바로 팀에 보입니다. 크게 바꿨으면 새 버전으로 다시 알려 주세요.' : '아직 팀에 알리지 않았습니다.'}</p>
+        ${svc.fixed ? '' : `<div class="svc" style="margin-top:16px"><p class="meta"><b>${svc.published ? '팀 공개 · v' + svc.version : '초안'}</b></p><p class="pass">${svc.published ? '도서관에 올라가 있습니다. 고친 내용은 저장하면 바로 팀에 보입니다.' : '아직 초안입니다. 완성하면 위의 「완성해서 팀에 올리기」를 눌러 주세요.'}</p>
           <div class="acts" data-edit>${svc.published ? '<button class="btn sec" data-act="svc-unpub">초안으로 내리기</button>' : ''}<button class="btn sec" data-act="svc-copy">다음 주로 복사</button><button class="btn sec" data-act="svc-del">${S.delArm === 'svc' ? '정말 휴지통으로' : '휴지통으로'}</button></div>
           ${(svc.history || []).length ? `<details style="margin-top:12px"><summary>이전 버전 ${svc.history.length}개</summary>${svc.history.slice().reverse().map((h) => `<div class="librow two"><span class="t"><b>v${h.version}</b><small>${ago(h.at)} · ${h.data.songs.length}곡</small></span><button class="mini" data-edit data-act="ver-back" data-i="${h.version}">${S.delArm === 'ver' + h.version ? '정말 되돌리기' : '이 버전으로'}</button></div>`).join('')}</details>` : ''}</div>`}`;
     } else {
@@ -7382,7 +7392,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       }
       body = strip + detail;
     }
-    el.innerHTML = `<div class="wbtop"><h2>예배 준비</h2><button class="pub" data-edit data-act="svc-publish">${S.delArm === 'pub' ? '한 번 더 눌러 공개' : svc.published ? '다시 공개 v' + (svc.version + 1) : '팀에 공개'}</button></div>
+    el.innerHTML = `<div class="wbtop"><h2>예배 준비</h2>${pubBtn(svc, 'pub')}</div>
       <div class="wbbar"><span id="wb-state">${esc(W.state)}</span><button id="wb-undo" data-edit data-act="wb-undo" ${W.undo.length ? '' : 'disabled'}>↶ 되돌리기</button><button id="wb-redo" data-edit data-act="wb-redo" ${W.redo.length ? '' : 'disabled'}>↷ 다시 실행</button></div>
       <div class="wbseg"><button data-act="wb-tab" data-v="word" class="${W.tab === 'word' ? 'on' : ''}">01 · 말씀과 예배</button><button data-act="wb-tab" data-v="songs" class="${W.tab === 'songs' ? 'on' : ''}">02 · 찬양과 송폼 <i>${songs.length}</i></button></div>${body}
       ${W.tab === 'songs' && g ? `<div class="dock duo"><div><button class="btn ${W.pane === 'set' ? '' : 'sec'}" data-act="wb-pane" data-v="set">곡 · 송폼 설정</button><button class="btn ${W.pane === 'score' ? '' : 'sec'}" data-act="wb-pane" data-v="score">악보 · 구간 표시</button></div></div>` : ''}`;
@@ -7558,7 +7568,9 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       const svc = newService(), name = S.list || '주일예배', d = new Date(today() + 'T12:00:00Z'), wd = name === '금요철야' ? 5 : name === '주일예배' ? 0 : d.getUTCDay();
       d.setUTCDate(d.getUTCDate() + (wd - d.getUTCDay() + 7) % 7);
       svc.data.listName = name; svc.data.title = name === '미분류' ? '새 예배' : name; svc.data.date = d.toISOString().slice(0, 10);
-      persist(svc).then(() => { S.weekId = svc.id; wbOpen('word'); }, fail);
+      const same = Lib.live.filter((x) => !x.fixed && slotKey(x) === slotKey(svc)).sort((p, q) => (isEmptySvc(p) ? 1 : 0) - (isEmptySvc(q) ? 1 : 0) || (q.published ? 1 : 0) - (p.published ? 1 : 0) || newestFirst(p, q))[0];
+      if (same) { S.weekId = same.id; S.svcId = same.id; syncSet(); toast(same.data.date + ' ' + listOf(same.data) + '를 이어서 준비합니다.'); wbOpen('word'); }
+      else persist(svc).then(() => { S.weekId = svc.id; wbOpen('word'); }, fail);
     }
     else if (a === 'refresh') { b.disabled = true; Lib.init().then(() => { syncSet(); renderHome(); }); }
     else if (a === 'lib-tab') { S.libTab = b.dataset.v; renderHome(); }
@@ -7613,7 +7625,14 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     else if (a === 'svc-del') { if (S.delArm !== 'svc') { S.delArm = 'svc'; renderLib(); } else { S.delArm = null; const svc = cur(); svc.deleted = Date.now(); svc._keep = true; Lib.put(svc).then(() => { S.svcId = Lib.live[0] ? Lib.live[0].id : ''; syncSet(); save(); S.libTab = 'bin'; go('library'); }, fail); } }
     else if (a === 'bin-back') { const x = Lib.items.find((y) => y.id === id); if (x) { x.deleted = 0; x._keep = true; Lib.put(x).then(renderHome, fail); } }
     else if (a === 'bin-kill') { if (S.delArm !== 'kill' + id) { S.delArm = 'kill' + id; renderHome(); } else { S.delArm = null; Lib.del(id).then(renderHome, fail); } }
-    else if (a === 'svc-publish') { const svc = cur(); if (svc && S.delArm !== 'pub') { S.delArm = 'pub'; renderWB(); setTimeout(() => { if (S.delArm === 'pub') { S.delArm = null; renderWB(); } }, 4000); } else if (svc) { S.delArm = null; svc.version = (svc.version || 0) + 1; svc.published = true; svc.noticeAt = Date.now(); svc.history = (svc.history || []).concat([{ version: svc.version, at: svc.noticeAt, data: clone(svc.data) }]).slice(-6); SEEN[svc.id] = svc.version; LSset('lop-seen', SEEN); persist(svc).then(renderLib, fail); } }
+    else if (a === 'svc-publish') { const svc = cur(); if (!svc || S.pubBusy || pubState(svc) === 'done') return;
+      if (!svc.data.songs.some((g) => (g.title || '').trim())) return toast('곡을 한 곡 이상 넣어야 올릴 수 있습니다.');
+      const first = !svc.published, old = Lib.live.filter((x) => x.id !== svc.id && !x.fixed && x.published && slotKey(x) === slotKey(svc));
+      S.pubBusy = svc.id; if (!$('#v-score').hidden) renderWB(); else renderLib();
+      svc.version = (svc.version || 0) + 1; svc.published = true; svc.noticeAt = Date.now(); svc.history = (svc.history || []).concat([{ version: svc.version, at: svc.noticeAt, data: clone(svc.data) }]).slice(-6); SEEN[svc.id] = svc.version; LSset('lop-seen', SEEN);
+      persist(svc).then(async () => { for (const o of old) { o.published = false; o._keep = true; try { await Lib.put(o); } catch (e) { /* 예전 것은 그대로 둔다 */ } }
+        S.pubBusy = null; toast(first ? '✓ 도서관에 올라갔습니다' + (old.length ? ' (같은 날 예전 것은 초안으로 옮김)' : '') : '✓ 바뀐 내용을 팀에 알렸습니다 · v' + svc.version); syncSet(); if (!$('#v-score').hidden) renderWB(); renderLib(); renderHome(); },
+        (e) => { S.pubBusy = null; svc.published = !first; svc.version--; svc.history.pop(); if (!$('#v-score').hidden) renderWB(); renderLib(); fail(e); }); }
     else if (a === 'svc-unpub') { const svc = cur(); if (svc) { svc.published = false; persist(svc).then(renderLib, fail); } }
     else if (a === 'ver-back') { const svc = cur(), h = svc && (svc.history || []).find((y) => y.version === i); if (h) { if (S.delArm !== 'ver' + i) { S.delArm = 'ver' + i; renderLib(); } else { S.delArm = null; svc.data = clone(h.data); persist(svc).then(renderLib, fail); } } }
     else if (a === 'list') { S.list = b.dataset.v; S.weekId = ''; renderHome(); }
