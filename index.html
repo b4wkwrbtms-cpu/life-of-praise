@@ -304,6 +304,149 @@ nav.bottom>div{grid-template-columns:repeat(5,1fr);max-width:640px}nav.bottom bu
 header.app{padding-top:env(safe-area-inset-top)}
 .locknote{display:block;width:100%;text-align:left;margin:12px 0 0;padding:12px 16px;border-radius:16px;background:#fbf3e6;border:1px solid #efdcbd;color:#6b5324;font-size:15px;font-weight:600}
 @media(min-width:900px){#week>.locknote{grid-column:1/-1}}
+/* ══════ 디자인 v3 — 휴대폰 한 손 사용 기준으로 다시 맞춘 층 ══════
+   기준: 누르는 곳 최소 48px(애플·구글 지침, 피츠의 법칙), 엄지가 닿는 아래쪽에 주요 동작,
+   선택지는 화면마다 적게(힉의 법칙), 글자 대비 4.5:1 이상(WCAG), 간격은 8의 배수,
+   모서리는 카드 20 · 입력칸 14 · 칩 둥글게 세 단계만. */
+:root{
+  --paper:#f2f3ee;--card:#ffffff;--ink:#17211c;--sub:#56635c;--hair:#e0e4dd;--hair2:#eef1ec;
+  --pine:#1e4636;--pine-2:#2a5a47;--pine-soft:#e4ede7;--ochre:#9a6418;--ochre-soft:#f6eedf;
+  --r-card:20px;--r-ctl:14px;--r-pill:999px;
+  --sh:0 1px 2px rgba(23,33,28,.04),0 4px 14px rgba(23,33,28,.04);
+  --bg:var(--paper);--panel:var(--card);--panel2:var(--pine-soft);--line:var(--hair);--text:var(--ink);--muted:var(--sub);--accent:var(--pine);
+  --color-bg:var(--paper);--color-card:var(--card);--color-border:var(--hair);--color-text-main:var(--ink);--color-text-sub:var(--sub);--color-primary:var(--pine);
+  --radius-box:var(--r-ctl);--r:var(--r-ctl)
+}
+/* 종이 결: 아주 옅은 알갱이 — 화면이 평평한 회색판처럼 보이지 않게 */
+body{background-color:var(--paper);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .15 0 0 0 0 .12 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");color:var(--ink);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{padding:0 16px calc(104px + env(safe-area-inset-bottom))}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:not(:disabled):active{transform:scale(.98)}
+@media (prefers-reduced-motion:reduce){button:not(:disabled):active{transform:none}}
+:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+
+/* 머리 막대: 56px, 아래 선 하나 */
+header.app{background:rgba(242,243,238,.92);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--hair)}
+header.app>div{padding:8px 16px;min-height:56px;gap:10px}
+header.app h1{font-size:19px;font-weight:800;letter-spacing:-.02em}
+header.app .plus{width:40px;height:40px;border-radius:12px;background:var(--pine);color:#fff;font-size:24px;line-height:1;display:grid;place-items:center}
+header.app .rnd{width:40px;height:40px;border-radius:12px;border:1px solid var(--hair);background:var(--card)}
+
+/* 아래 탭: 떠 있는 둥근 판 대신 바닥에 붙은 막대 — 흔들려 보이지 않게 */
+nav.bottom{background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:0;box-shadow:none;border-top:1px solid var(--hair);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+nav.bottom button{min-height:54px;gap:2px;font-size:11px;color:var(--sub);letter-spacing:-.01em}
+nav.bottom svg{width:52px;height:30px;padding:4px 14px;stroke-width:1.8}
+nav.bottom button.on{color:var(--pine);font-weight:700}nav.bottom button.on svg{background:var(--pine-soft);color:var(--pine)}
+
+/* 편집 화면 위 탭 */
+nav.tabs{background:rgba(242,243,238,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+nav.tabs button{font-size:15px;min-height:48px}
+
+/* 글자 단계: 13 · 15 · 17 · 20 · 26 */
+h2.big{font-size:26px;line-height:1.25;margin:24px 0 4px;letter-spacing:-.025em}
+.lead{font-size:15px;color:var(--sub);margin:0 0 16px}
+
+/* 카드 한 가지 모양 */
+.svc,.songrow,.note,.tip,.empty,.order,.quad,.word{border-radius:var(--r-card);border:1px solid var(--hair);background:var(--card);box-shadow:var(--sh)}
+.svc,.songrow,.note,.empty{padding:18px;margin:0 0 12px}
+.tip{background:var(--pine-soft);border-color:#d3e0d7;box-shadow:none;font-size:14px;color:var(--sub);padding:16px 18px}
+.tip b{color:var(--pine)}
+
+/* 버튼 세 가지: 주(짙은 솔), 보조(흰 바탕 선), 글자 */
+.btn{min-height:50px;border-radius:var(--r-ctl);font-size:16px;background:var(--pine);box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.btn.sec{background:var(--card);border:1px solid var(--hair);color:var(--ink);font-weight:600}
+.btn.done{background:var(--pine-soft);color:var(--pine);border:1px solid #cfe0d5}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.acts.three{grid-template-columns:1fr 1fr 50px}.acts .ic{font-size:20px;padding:0;letter-spacing:.1em}
+
+/* 입력칸 */
+textarea,input[type=text],input[type=password],input[type=search],input[type=date],select{border-radius:var(--r-ctl);border:1px solid var(--hair);background:var(--card);min-height:48px;font-size:16px}
+input.search{border-radius:var(--r-ctl)!important;min-height:48px!important;margin:12px 0;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2356635c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6'/%3E%3Cpath d='M20 20l-4.5-4.5'/%3E%3C/svg%3E") no-repeat 14px center/18px;padding-left:42px!important}
+label.f{font-size:13px;font-weight:600;color:var(--sub)}
+
+/* 칩 줄: 한 줄로 옆으로 밀기(줄바꿈으로 높이가 들쭉날쭉하지 않게) */
+.pilltabs.lists{flex-wrap:nowrap;margin:0 -16px 12px;padding:2px 16px;gap:8px;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.pilltabs button{min-height:40px;padding:0 16px;font-size:15px;border-color:var(--hair);background:var(--card)}
+.pilltabs button.on{background:var(--pine);border-color:var(--pine)}
+.pilltabs.lists button[data-act=list-add]{color:var(--sub);border-style:dashed;background:transparent}
+.pilltabs.under{margin-top:4px}.pilltabs.under button{min-height:46px;padding:0 14px;font-size:15px}
+.pilltabs.under button.on{color:var(--pine);border-bottom-color:var(--pine)}
+
+/* ── 이번 주 ── */
+.locknote{display:flex;align-items:center;gap:8px;width:100%;margin:12px 0 0;padding:0 14px;min-height:44px;border-radius:var(--r-ctl);background:var(--card);border:1px solid var(--hair);color:var(--sub);font-size:14px;font-weight:500}
+.locknote svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8}
+.locknote span{flex:1;text-align:left}.locknote b{color:var(--pine);font-weight:700}
+.wkhead{margin:20px 0 16px;gap:16px}
+.wkhead .dt{padding-right:16px;border-right:1px solid #b9c8bd}
+.wkhead .dt span{font-size:13px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.wkhead .dt b{font-size:52px;font-weight:400;letter-spacing:-.02em}
+.wkhead .k{font-size:14px;color:var(--sub);font-weight:600}
+.wkhead h2{font-size:26px;line-height:1.2;margin:2px 0 4px;letter-spacing:-.03em}
+.wkhead .pass{font-size:15px}
+.wkpick{display:block;border:1px solid var(--hair);border-radius:var(--r-card);background:var(--card);box-shadow:var(--sh);padding:4px 6px 6px;margin:0 0 12px}
+.wkpick select{display:block;width:100%;min-height:48px;border:0;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e4636' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 10px center/20px;padding:0 40px 0 12px;font-size:16px;font-weight:600;-webkit-appearance:none;appearance:none;text-overflow:ellipsis}
+.wkmeta{display:flex;align-items:center;gap:8px;padding:0 6px 4px 12px}
+.wkmeta .tag{font-size:13px;font-weight:600;padding:5px 10px;border-radius:var(--r-pill);background:var(--pine-soft);color:var(--pine)}
+.wkmeta .tag.dr{background:var(--ochre-soft);color:var(--ochre)}
+.wkmeta .ic{width:44px;height:44px;display:grid;place-items:center;margin-left:auto;color:var(--sub)}
+.wkmeta .ic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.wkmeta .open{min-height:40px;padding:0 14px;border-radius:var(--r-pill);background:var(--pine-soft);color:var(--pine);font-weight:700;font-size:14px}
+.prep{display:none}
+
+/* 주요 동작: 큰 합주 버튼 하나 + 같은 크기 세 칸 */
+.quad{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:var(--card);overflow:hidden;margin:0 0 12px}
+.quad button{display:grid;justify-items:center;align-content:center;gap:6px;min-height:84px;padding:12px 6px;text-align:center;border-top:1px solid var(--hair);border-left:1px solid var(--hair);color:var(--ink)}
+.quad button:nth-child(-n+2){min-height:84px}.quad button:nth-child(even){border-left:1px solid var(--hair)}
+.quad button:nth-child(2){border-left:0;border-top:1px solid var(--hair)}
+.quad b{font-size:14px;font-weight:600}
+.quad svg{width:26px;height:26px;stroke:var(--pine)}
+.quad .main{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-start;gap:14px;min-height:76px;padding:14px 18px;text-align:left;border:0;background:var(--pine);color:#fff}
+.quad .main svg{width:44px;height:44px;padding:11px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;stroke:none}
+.quad .main span{flex:1}.quad .main b{font-size:18px;font-weight:800}.quad .main small{font-size:13px;opacity:.8;margin-top:2px}
+.quad .main i{font-style:normal;font-size:26px;opacity:.7}
+.quad button:disabled{opacity:.4}
+
+/* 새 소식 */
+.news{border-radius:var(--r-card);background:var(--ochre-soft);border-color:#ecdcc0;padding:12px 14px;margin:0 0 12px}
+.news em{background:#efdfc0;color:var(--ochre)}
+.news button{min-height:44px;padding:0 14px;border-radius:var(--r-ctl);background:var(--card);font-weight:700;color:var(--ink)}
+
+/* 찬양 순서 */
+.order{margin:0 0 12px}
+.order header{padding:16px 18px 12px}.order h3{font-size:19px}
+.order>button{width:calc(100% - 36px);margin:0 18px;padding:14px 0;gap:12px}
+.order .no{font-size:20px;color:#7b9585;width:28px}
+.order .bd b{font-size:17px;letter-spacing:-.01em}.order .bd small{font-size:13px}
+.order .go{font-size:22px;color:#a7b2ab;align-self:center}
+.form{gap:2px 6px;font-size:14px;color:var(--sub)}.form i.c{color:var(--pine)}
+kbd{font-size:12px;padding:4px 8px;border-radius:8px;background:var(--pine-soft);color:var(--pine);vertical-align:2px}
+
+/* 말씀 카드 */
+.word{background:var(--pine);border:0}.word img{height:132px}.word>div{padding:16px 18px 20px}
+.word h3{font-size:22px}.word .s{font-size:15px;line-height:1.8}
+
+/* ── 도서관 카드 ── */
+.svc .meta{font-size:13px}.svc .meta b{font-size:15px}
+.svc h3{font-size:20px;margin:6px 0 2px;letter-spacing:-.02em}
+.svc .pass{font-size:14px}
+.svc .sum{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;margin-top:12px;padding:10px 12px;border-radius:var(--r-ctl);background:#f6f8f5;text-align:left;color:var(--sub);font-size:14px}
+.svc .sum span{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.svc .sum b{flex:none;color:var(--pine);font-size:13px}
+.svc .sum.fold{justify-content:center;background:none;margin-top:4px;min-height:44px}
+.svc ol{margin-top:12px}.svc li button{min-height:48px}.svc li b{font-size:16px}
+.more{display:grid;gap:0;margin-top:10px;border:1px solid var(--hair);border-radius:var(--r-ctl);overflow:hidden}
+.more button{min-height:48px;padding:0 14px;text-align:left;border-top:1px solid var(--hair);background:var(--card);font-size:15px}
+.more button:first-child{border-top:0}.more .danger{color:#b3261e}
+
+/* 곡 줄·고정찬양 */
+.songrow b{font-size:17px}.songrow small{font-size:13px}
+.songrow.fx .ops{gap:0 4px;padding:6px 12px 10px}.songrow.fx .ops button{min-height:44px;padding:0 8px;font-size:14px}
+
+/* 빈 화면 */
+.empty{padding:32px 20px}.empty b{font-size:17px}
+
+/* 넓은 화면에서도 한 줄로 차분하게 */
+@media (min-width:720px){.wkhead h2{font-size:30px}.quad .main{min-height:84px}}
 </style>
 </head>
 <body>
@@ -6547,7 +6690,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     $('#me').innerHTML = webCard + login + `
       <div class="svc"><h3 style="margin-top:0">자료</h3><p class="pass">예배 ${all.length}건 · 곡 ${songs.size}곡 · ${WEB.on ? '이 주소를 여는 모든 기기에 보입니다.' : Lib.col ? '이 페이지를 함께 쓰는 팀원 모두에게 보입니다.' : '지금은 이 기기에만 저장됩니다.'}${Lib.ro ? (WEB.on ? ' 지금은 보기만 됩니다.' : ' 보기 전용 권한입니다.') : ''}</p>
       <div class="acts"><button class="btn sec" data-act="lib-export">전체 백업 내보내기</button><button class="btn sec" data-edit data-act="imp">백업·PPT·가사 파일 가져오기</button></div><p class="muted">${LS('lop-backup-at', 0) ? '마지막 백업: ' + ago(LS('lop-backup-at', 0)) : '아직 백업한 적이 없습니다. 가끔 내보내 두면 안전합니다.'}</p><p id="me-status" class="status" role="status"></p></div>
-      <div class="tip"><b>원래 생명의 찬양과 다른 점</b>로그인은 Claude 계정으로 합니다(따로 만든 아이디·비밀번호는 없습니다). 교회를 여러 개로 나누는 기능, 휴대폰 푸시 알림, PDF 악보는 이 페이지에 없습니다.</div>`;
+      ${WEB.on ? '' : '<div class="tip"><b>원래 생명의 찬양과 다른 점</b>로그인은 Claude 계정으로 합니다(따로 만든 아이디·비밀번호는 없습니다). 교회를 여러 개로 나누는 기능, 휴대폰 푸시 알림, PDF 악보는 이 페이지에 없습니다.</div>'}`;
   }
   function weekSvc() {
     const all = Lib.live.filter((x) => !x.fixed && inList(x)), pub = all.filter((x) => x.published), pool = pub.length ? pub : all, t = today();
@@ -6560,9 +6703,10 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     const d = svc.data, id = esc(svc.id);
     return `<article class="svc"><p class="meta"><b>${esc(d.date)}</b><span>${svc.published ? '완성본' : '초안'}</span>${svc.version ? `<em>v${svc.version}</em>` : ''}</p>
       <h3>${esc(d.title || '예배')}</h3>${d.passage ? `<p class="pass">${esc(d.passage)}</p>` : ''}
-      <ol>${d.songs.map((x, i) => `<li><button data-act="card-song" data-id="${id}|${esc(x.id)}"><span>${String(i + 1).padStart(2, '0')}</span><b>${esc(x.title || '제목 없음')}</b>${x.key ? `<kbd>${esc(x.key)}</kbd>` : ''}</button></li>`).join('') || '<li class="none">아직 곡이 없습니다</li>'}</ol>
-      <div class="acts"><button class="btn" data-act="card-reader" data-id="${id}" ${d.songs.length ? '' : 'disabled'}>전체화면 합주</button><button class="btn sec" data-act="card-share" data-id="${id}">카톡 공유</button><button class="btn sec" data-act="card-edit" data-id="${id}">${Lib.ro ? '열어 보기' : '편집'}</button><button class="btn sec" data-act="card-more" data-id="${id}" aria-expanded="${S.more === svc.id}">⋯ 더보기</button></div>
-      ${S.more === svc.id ? `<div class="more"><button data-act="card-ppt" data-id="${id}" ${d.songs.length ? '' : 'disabled'}>회중 가사 PPT · PDF</button><button data-act="card-zip" data-id="${id}" ${d.songs.length ? '' : 'disabled'}>악보 전체 저장</button><button data-edit data-act="card-copy" data-id="${id}">다음 주로 복사</button><button data-edit class="danger" data-act="card-trash" data-id="${id}">${S.delArm === 'tr' + svc.id ? '정말 휴지통으로' : '휴지통으로'}</button></div>` : ''}</article>`;
+      ${S.openCard === svc.id ? '' : `<button class="sum" data-act="card-open" data-id="${id}"><span>${d.songs.map((x) => esc(x.title || '제목 없음')).join(' · ') || '아직 곡이 없습니다'}</span><b>${d.songs.length}곡 ▾</b></button>`}
+      ${S.openCard !== svc.id ? '' : `<ol>${d.songs.map((x, i) => `<li><button data-act="card-song" data-id="${id}|${esc(x.id)}"><span>${String(i + 1).padStart(2, '0')}</span><b>${esc(x.title || '제목 없음')}</b>${x.key ? `<kbd>${esc(x.key)}</kbd>` : ''}</button></li>`).join('') || '<li class="none">아직 곡이 없습니다</li>'}</ol><button class="sum fold" data-act="card-open" data-id="${id}"><b>곡 목록 접기 ▴</b></button>`}
+      <div class="acts three"><button class="btn" data-act="card-reader" data-id="${id}" ${d.songs.length ? '' : 'disabled'}>합주하기</button><button class="btn sec" data-act="card-edit" data-id="${id}">${Lib.ro ? '자세히' : '열기'}</button><button class="btn sec ic" data-act="card-more" data-id="${id}" aria-expanded="${S.more === svc.id}" aria-label="더보기">⋯</button></div>
+      ${S.more === svc.id ? `<div class="more"><button data-act="card-share" data-id="${id}">카톡으로 공유</button><button data-act="card-ppt" data-id="${id}" ${d.songs.length ? '' : 'disabled'}>회중 가사 PPT · PDF</button><button data-act="card-zip" data-id="${id}" ${d.songs.length ? '' : 'disabled'}>악보 전체 저장</button><button data-edit data-act="card-copy" data-id="${id}">다음 주로 복사</button><button data-edit class="danger" data-act="card-trash" data-id="${id}">${S.delArm === 'tr' + svc.id ? '정말 휴지통으로' : '휴지통으로'}</button></div>` : ''}</article>`;
   }
   function renderHome() {
     renderChrome();
@@ -6577,16 +6721,15 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       else if (!w) el.innerHTML = listPills() + `<div class="empty"><b>${S.list ? esc(S.list) + ' 목록에 예배가 없습니다' : '아직 예배가 없습니다'}</b><p>아래 버튼으로 예배 준비를 시작하세요.</p><button class="btn" data-edit data-act="prep" style="margin-top:14px">+ 예배 준비</button></div>`;
       else {
         const d = w.data, id = esc(w.id), ym = String(d.date).slice(0, 7).replace('-', '.'), day = String(d.date).slice(8, 10), wd = ['일', '월', '화', '수', '목', '금', '토'][new Date(d.date + 'T12:00:00').getDay()] || '', pages = d.songs.reduce((n, x) => n + (x.pages || []).length, 0);
-        const lockNote = WEB.on && Lib.ro ? `<button class="locknote" data-act="web-go">${WEB.offline ? '인터넷에 닿지 못해 마지막으로 받은 자료를 보여 줍니다' : '지금은 보기만 됩니다 · 고치려면 팀 암호 넣기 ›'}</button>` : '';
+        const lockNote = WEB.on && Lib.ro ? `<button class="locknote" data-act="web-go"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>${WEB.offline ? '인터넷이 끊겨 마지막 자료를 보여 줍니다' : '보기 전용'}</span>${WEB.offline ? '' : '<b>팀 암호 넣기</b>'}</button>` : '';
         el.innerHTML = lockNote + `<div class="wkhead"><p class="dt"><span>${esc(ym)}</span><b>${esc(day)}</b></p><div><p class="k">${wd ? wd + '요일 ' : ''}예배 순서지</p><h2>${esc(d.title || '이번 주 예배')}</h2>${d.passage ? `<p class="pass">${esc(d.passage)}</p>` : ''}</div></div>
-        <div class="prep"><button data-edit data-act="prep">+ 예배 준비</button><button data-act="refresh" aria-label="새로 고침"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.500-4M4 4v4h4M4 13a8 8 0 0014.500 4M20 20v-4h-4"/></svg></button></div>
         ${listPills()}
-        <div class="wkpick"><select id="week-pick" aria-label="볼 예배 고르기">${Lib.live.filter((x) => !x.fixed).map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? 'selected' : ''}>${esc(x.date)} · ${esc(x.title)}${x.published ? '' : ' · 초안'}</option>`).join('')}</select><span class="tag">${w.published ? '팀 공개' : '초안'}</span>${w.version ? `<em>v${w.version}</em>` : ''}<button data-act="card-edit" data-id="${id}">${Lib.ro ? '열기' : '편집'} ↗</button></div>
+        <div class="wkpick"><select id="week-pick" aria-label="볼 예배 고르기">${Lib.live.filter((x) => !x.fixed).map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? 'selected' : ''}>${esc(x.date)} · ${esc(x.title)}${x.published ? '' : ' · 초안'}</option>`).join('')}</select><div class="wkmeta"><span class="tag ${w.published ? 'pub' : 'dr'}">${w.published ? '팀 공개' + (w.version ? ' · v' + w.version : '') : '초안'}</span><button class="ic" data-act="refresh" aria-label="새로 고침"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.500-4M4 4v4h4M4 13a8 8 0 0014.500 4M20 20v-4h-4"/></svg></button><button class="open" data-act="card-edit" data-id="${id}">${Lib.ro ? '자세히 보기' : '예배 준비 열기'}</button></div></div>
         ${w.published && w.version > 0 && unread(w) ? `<div class="news"><p><em>새 소식</em>이번 주 말씀과 찬양이 공개되었습니다.</p><button data-act="bell-ok" data-id="${id}">확인했어요</button></div>` : ''}
-        <div class="quad"><button class="main" data-act="card-reader" data-id="${id}" ${d.songs.length ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/></svg><span><b>전체 악보로 합주하기</b><small>전체 화면 · 옆으로 넘기기</small></span></button>
-          <button data-act="card-ppt" data-id="${id}" ${d.songs.length ? '' : 'disabled'}><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 21l4-5 4 5"/></svg><b>회중 가사 PPT</b></button>
+        <div class="quad"><button class="main" data-act="card-reader" data-id="${id}" ${d.songs.length ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="currentColor" stroke="none"/></svg><span><b>합주하기</b><small>악보 ${pages}장 · 옆으로 넘겨 보기</small></span><i>›</i></button>
+          <button data-act="card-ppt" data-id="${id}" ${d.songs.length ? '' : 'disabled'}><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 21l4-5 4 5"/></svg><b>가사 PPT</b></button>
           <button data-act="card-share" data-id="${id}"><svg viewBox="0 0 24 24"><path d="M12 4c5 0 9 3.4 9 7.5S17 19 12 19c-.9 0-1.800-.1-2.600-.3L5 20.500l1-3.600C4.200 15.500 3 13.600 3 11.500 3 7.400 7 4 12 4z"/></svg><b>카톡 공유</b></button>
-          <button data-act="card-zip" data-id="${id}" ${pages ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M4 20h16"/></svg><b>악보 전체 저장</b></button></div>
+          <button data-act="card-zip" data-id="${id}" ${pages ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M4 20h16"/></svg><b>악보 저장</b></button></div>
         <p id="wk-status" class="status" role="status"></p>
         <article class="order"><header><h3>찬양 순서</h3><p>${d.songs.length}곡 / 악보 ${pages}장</p></header>
           ${d.songs.map((x, i) => `<button data-act="card-song" data-id="${id}|${esc(x.id)}"><span class="no">${String(i + 1).padStart(2, '0')}</span><span class="bd"><b>${esc(x.title || '제목 없음')}${x.key ? `<kbd>${esc(x.key)}</kbd>` : ''}</b><small>악보 ${(x.pages || []).length}장${(x.lyrics || []).length ? ' · 가사 있음' : ''}</small><span class="form">${formHtml(x)}</span></span><span class="go">›</span></button>`).join('') || '<p class="none">아직 곡이 없습니다. 편집에서 곡을 담아 주세요.</p>'}</article>
@@ -7573,6 +7716,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       else persist(svc).then(() => { S.weekId = svc.id; wbOpen('word'); }, fail);
     }
     else if (a === 'refresh') { b.disabled = true; Lib.init().then(() => { syncSet(); renderHome(); }); }
+    else if (a === 'card-open') { S.openCard = S.openCard === b.dataset.id ? null : b.dataset.id; renderHome(); }
     else if (a === 'lib-tab') { S.libTab = b.dataset.v; renderHome(); }
     else if (a === 'card-share') { const s2 = Lib.items.find((x) => x.id === id); if (s2) shareSvc(s2); }
     else if (a === 'card-zip') { const s2 = Lib.items.find((x) => x.id === id); if (s2) zipSvc(s2); }
