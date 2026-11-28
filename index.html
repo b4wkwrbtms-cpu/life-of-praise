@@ -447,6 +447,21 @@ kbd{font-size:12px;padding:4px 8px;border-radius:8px;background:var(--pine-soft)
 
 /* 넓은 화면에서도 한 줄로 차분하게 */
 @media (min-width:720px){.wkhead h2{font-size:30px}.quad .main{min-height:84px}}
+
+/* ── 로그인 ── */
+.login h3{margin:0 0 4px;color:var(--ink);font-size:20px}
+.sso{display:grid;gap:10px;margin-top:16px}
+.sso button{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;border-radius:var(--r-ctl);font-size:16px;font-weight:600;letter-spacing:-.01em}
+.sso svg{width:20px;height:20px;flex:none}
+.sso .g{background:#fff;color:#1f1f1f;border:1px solid #c9cdd2}
+.sso .k{background:#FEE500;color:rgba(0,0,0,.85);border:1px solid #f2d900}
+.acct .av,.mem .av{display:grid;place-items:center;flex:none;border-radius:50%;background:var(--pine-soft);color:var(--pine);font-style:normal;font-weight:700}
+.acct .av{width:48px;height:48px;font-size:20px}.mem .av{width:36px;height:36px;font-size:15px}
+.role{font-style:normal;font-size:12px;font-weight:700;padding:3px 8px;border-radius:var(--r-pill);background:var(--pine-soft);color:var(--pine)}
+.role.pending{background:var(--ochre-soft);color:var(--ochre)}.role.admin{background:var(--pine);color:#fff}
+.mem .role,.mem .rolesel{margin-left:auto;flex:none}
+.rolesel{width:auto!important;min-height:40px!important;padding:0 30px 0 10px!important;font-size:14px!important}
+.tipline{margin:12px 0 0;padding:10px 12px;border-radius:var(--r-ctl);background:var(--ochre-soft);color:var(--ochre);font-size:14px}
 </style>
 </head>
 <body>
@@ -6416,6 +6431,13 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
 </script>
 <script>/* 생명의 찬양 (Claude판) — 화면. 자료 구조는 생명의 찬양 lib/types.ts의 Service·Worship·Song·Section·ScorePage를 그대로 쓴다. */
 (() => {
+  const SESSKEY = 'lop-sess';
+  let AUTHRET = '';
+  try {
+    const h = location.hash.slice(1), q = new URLSearchParams(h.includes('=') ? h : location.search.slice(1));
+    if (q.get('access_token')) { localStorage.setItem(SESSKEY, JSON.stringify({ at: q.get('access_token'), rt: q.get('refresh_token') || '', exp: Date.now() + (+q.get('expires_in') || 3600) * 1000 })); AUTHRET = 'ok'; history.replaceState(null, '', location.pathname + '#me'); }
+    else if (q.get('error_description') || q.get('error')) { AUTHRET = q.get('error_description') || q.get('error'); history.replaceState(null, '', location.pathname + '#me'); }
+  } catch (e) { /* 주소를 못 읽으면 그냥 둔다 */ }
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = SFPPT.THEMES;
@@ -6447,9 +6469,36 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
   const SB = { url: 'https://ownarhjgryafrgoouirs.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93bmFyaGpncnlhZnJnb291aXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0OTUzNTAsImV4cCI6MjEwNzA3MTM1MH0.wf_-9DQMD5I1g55DSm4I_BpYieSHmB-Fpz_UsSD9ndk' }; // 공개용(읽기 전용 권한) 키. 쓰기는 서버의 팀 암호 검사를 거친다
   const WEB = { on: false, pass: '', has: null, empty: false, at: 0 };
   try { WEB.pass = localStorage.getItem('lop-pass') || ''; } catch (e) { /* 저장소 없음 */ }
-  const sbFetch = (path, opt) => fetch(SB.url + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SB.key, Authorization: 'Bearer ' + SB.key, 'Content-Type': 'application/json' }, (opt && opt.headers) || {}) }));
+  let SESS = null; try { SESS = JSON.parse(localStorage.getItem(SESSKEY) || 'null'); } catch (e) { SESS = null; }
+  const ACC = { member: null, members: [], ret: AUTHRET };
+  const sbFetch = (path, opt) => fetch(SB.url + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SB.key, Authorization: 'Bearer ' + ((SESS && SESS.at) || SB.key), 'Content-Type': 'application/json' }, (opt && opt.headers) || {}) }));
+  function signOut() { SESS = null; try { localStorage.removeItem(SESSKEY); } catch (e) { /* 무시 */ } ACC.member = null; AUTH.on = false; AUTH.uid = ''; AUTH.name = ''; AUTH.avatar = ''; AUTH.owner = false; AUTH.edit = false; Lib.ro = !WEB.pass; }
+  async function ensureSession() {
+    if (!SESS || !SESS.at) return false;
+    if (SESS.exp - Date.now() > 90000) return true;
+    if (!SESS.rt) { signOut(); return false; }
+    try {
+      const r = await fetch(SB.url + '/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: { apikey: SB.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: SESS.rt }) });
+      if (!r.ok) { if (r.status === 400 || r.status === 401) signOut(); return false; }
+      const j = await r.json(); SESS = { at: j.access_token, rt: j.refresh_token || SESS.rt, exp: Date.now() + (j.expires_in || 3600) * 1000 }; localStorage.setItem(SESSKEY, JSON.stringify(SESS)); return true;
+    } catch (e) { return !!SESS; }
+  }
+  async function loadAccountWeb() { // 로그인했으면 팀원 명단에 들고, 명단을 받아 둔다
+    try { const r = await sbFetch('/rest/v1/lop_members?select=user_id,name,avatar,role,position,provider,created_at&order=created_at'); ACC.members = r.ok ? await r.json() : []; } catch (e) { ACC.members = []; }
+    if (await ensureSession()) {
+      try { const r = await sbFetch('/rest/v1/rpc/lop_join', { method: 'POST', body: '{}' }); if (r.ok) ACC.member = await r.json(); else if (r.status === 401) signOut(); } catch (e) { /* 연결 안 되면 다음에 */ }
+      if (ACC.member && !ACC.members.some((m) => m.user_id === ACC.member.user_id)) ACC.members.push(ACC.member);
+    }
+    ACC.members.concat(ACC.member ? [ACC.member] : []).forEach((x) => { x.avatar = String(x.avatar || '').replace(/^http:\/\//, 'https://'); });
+    ACC.members.forEach((m) => { PROF[m.user_id] = { name: m.name || '팀원', avatarUrl: m.avatar || '' }; });
+    Lib.members = ACC.members.map((m) => ({ id: m.user_id, position: m.position || '', joined: Date.parse(m.created_at) || 0, role: m.role }));
+    const m = ACC.member;
+    if (m) { AUTH.on = true; AUTH.uid = m.user_id; AUTH.name = m.name || ''; AUTH.avatar = m.avatar || ''; AUTH.owner = m.role === 'admin'; AUTH.edit = m.role !== 'pending'; AUTH.write = AUTH.edit; ME.position = m.position || ME.position; }
+    return m;
+  }
+  const signIn = (prov) => { location.href = SB.url + '/auth/v1/authorize?provider=' + prov + '&redirect_to=' + encodeURIComponent(location.origin + location.pathname); };
   const rpc = async (fn, body) => { const r = await sbFetch('/rest/v1/rpc/' + fn, { method: 'POST', body: JSON.stringify(body || {}) }); if (!r.ok) throw { code: 'server', status: r.status }; return r.json(); };
-  const webWrite = async (fn, body) => { if (!WEB.pass) throw { code: 'locked' }; const ok = await rpc(fn, Object.assign({ p: WEB.pass }, body)); if (ok !== true) { webLock(); throw { code: 'locked' }; } };
+  const webWrite = async (fn, body) => { const acct = AUTH.on && AUTH.edit; if (!WEB.pass && !acct) throw { code: 'locked' }; if (acct) await ensureSession(); const ok = await rpc(fn, Object.assign({ p: WEB.pass || null }, body)); if (ok !== true) { if (acct) { AUTH.edit = false; Lib.ro = true; } else webLock(); throw { code: 'locked' }; } };
   function webLock() { WEB.pass = ''; try { localStorage.removeItem('lop-pass'); } catch (e) { /* 무시 */ } Lib.ro = true; }
   const blobB64 = (blob) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] || ''); fr.onerror = rej; fr.readAsDataURL(blob); });
   const b64Blob = (b64, mime) => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new Blob([u], { type: mime || 'image/png' }); };
@@ -6508,7 +6557,8 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
           this.items = snap.docs.map((d) => clone(d.data())).filter((x) => x && x.data && Array.isArray(x.data.songs)); this.col = webCol; this.assets = webAssets; WEB.on = true; WEB.empty = !this.items.length; WEB.at = Date.now(); WEB.offline = false; try { localStorage.setItem('lop-web-cache', JSON.stringify(this.items)); } catch (e) { /* 용량이 모자라면 건너뛴다 */ }
           try { WEB.has = await rpc('lop_has_pass'); } catch (e) { WEB.has = null; }
           if (WEB.pass) { try { if ((await rpc('lop_check', { p: WEB.pass })) !== true) webLock(); } catch (e) { /* 확인 못 하면 그대로 둔다 */ } }
-          this.ro = !WEB.pass;
+          await loadAccountWeb();
+          this.ro = !WEB.pass && !(AUTH.on && AUTH.edit);
         } catch (e) { // 서버에 닿지 못하면 마지막으로 받아 둔 자료를 보기 전용으로
           let cached = null; try { cached = JSON.parse(localStorage.getItem('lop-web-cache') || 'null'); } catch (e2) { cached = null; }
           if (Array.isArray(cached) && cached.length) { this.items = cached; this.col = webCol; this.assets = webAssets; WEB.on = true; WEB.offline = true; WEB.at = 0; this.ro = true; }
@@ -6671,6 +6721,28 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     svc.comments = (svc.comments || []).concat([{ id: uuid(), parentId: parentId || '', songId: parentId ? '' : $('#cm-song').value, uid: AUTH.uid || '', name: AUTH.uid ? '' : ME.name.trim(), position: ME.position || '', text, at: Date.now(), resolved: false, pinned: false }]);
     svc._keep = true; box.value = ''; S.replyTo = null; Lib.put(svc).then(renderTalk, fail);
   }
+  const ROLE_KO = { admin: '관리자', member: '팀원', pending: '승인 대기' };
+  const PROV_KO = { google: '구글', kakao: '카카오' };
+  const gIcon = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>';
+  const kIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#191919" d="M12 3.5C6.8 3.5 2.6 6.8 2.6 10.9c0 2.6 1.8 4.9 4.4 6.3l-1 3.6c-.1.3.3.6.6.4l4.3-2.8c.4 0 .7.1 1.1.1 5.2 0 9.4-3.3 9.4-7.4S17.2 3.5 12 3.5z"/></svg>';
+  function renderMeWeb(all, songs) {
+    const m = ACC.member, posSel = `<label class="f" for="me-pos">맡은 자리</label><select id="me-pos"><option value="">고르지 않음</option>${POSITIONS.map((p) => `<option ${ME.position === p ? 'selected' : ''}>${p}</option>`).join('')}</select>`;
+    const ret = ACC.ret && ACC.ret !== 'ok' ? `<p class="status warn">로그인하지 못했습니다: ${esc(ACC.ret)}</p>` : '';
+    const acct = !m ? `<div class="svc login"><h3>로그인</h3><p class="pass">보는 것은 로그인 없이도 됩니다. 예배를 고치려면 로그인한 뒤 관리자의 승인을 받으세요.</p>
+        <div class="sso"><button class="g" data-act="sso" data-v="google">${gIcon}<span>구글로 계속하기</span></button><button class="k" data-act="sso" data-v="kakao">${kIcon}<span>카카오로 계속하기</span></button></div>${ret}</div>`
+      : `<div class="svc"><div class="acct">${m.avatar ? `<img src="${esc(m.avatar)}" alt="" referrerpolicy="no-referrer">` : `<i class="av">${esc((m.name || '나').slice(0, 1))}</i>`}<div><b>${esc(m.name || '이름 없음')}</b><span>${PROV_KO[m.provider] || ''} 계정 · <em class="role ${m.role}">${ROLE_KO[m.role]}</em></span></div></div>
+        ${m.role === 'pending' ? '<p class="tipline">관리자가 승인하면 예배를 고칠 수 있습니다. 승인 전에도 모든 자료를 볼 수 있습니다.</p>' : ''}
+        <label class="f" for="me-name">이름 (소통 글에 표시됩니다)</label><input id="me-name" type="text" value="${esc(m.name || '')}" autocomplete="name" maxlength="40">${posSel}
+        <p id="me-acct-status" class="status" role="status"></p>
+        <button class="btn sec" data-act="sso-out" style="margin-top:6px">로그아웃</button></div>`;
+    const team = ACC.members.length ? `<div class="svc"><h3 style="margin-top:0">팀원 ${ACC.members.filter((x) => x.role !== 'pending').length}명${ACC.members.some((x) => x.role === 'pending') ? ` · 승인 대기 ${ACC.members.filter((x) => x.role === 'pending').length}명` : ''}</h3>
+        ${ACC.members.slice().sort((a, b) => (a.role === 'pending' ? -1 : 0) - (b.role === 'pending' ? -1 : 0)).map((x) => `<div class="mem">${x.avatar ? `<img src="${esc(x.avatar)}" alt="" referrerpolicy="no-referrer">` : `<i class="av">${esc((x.name || '?').slice(0, 1))}</i>`}<b>${esc(x.name || '이름 없음')}${m && x.user_id === m.user_id ? ' (나)' : ''}</b><span>${esc(x.position || PROV_KO[x.provider] || '')}</span>
+          ${AUTH.owner && x.user_id !== m.user_id ? `<select class="rolesel" data-uid="${esc(x.user_id)}" aria-label="${esc(x.name)} 권한">${['pending', 'member', 'admin'].map((r) => `<option value="${r}" ${x.role === r ? 'selected' : ''}>${ROLE_KO[r]}</option>`).join('')}<option value="remove">명단에서 빼기</option></select>` : `<em class="role ${x.role}">${ROLE_KO[x.role]}</em>`}</div>`).join('')}
+        ${AUTH.owner ? '<p class="muted" style="margin-top:10px">새로 로그인한 사람은 「승인 대기」로 들어옵니다. 팀원으로 바꾸면 예배를 고칠 수 있습니다.</p>' : ''}</div>` : '';
+    const data = `<div class="svc"><h3 style="margin-top:0">자료</h3><p class="pass">예배 ${all.length}건 · 곡 ${songs.size}곡 · 이 주소를 여는 모든 기기에 보입니다.</p>
+        <div class="acts"><button class="btn sec" data-act="lib-export">전체 백업 내보내기</button><button class="btn sec" data-edit data-act="imp">백업·PPT·가사 파일 가져오기</button></div><p id="me-status" class="status" role="status"></p></div>`;
+    $('#me').innerHTML = acct + team + data;
+  }
   function renderMe() {
     if (document.activeElement && document.activeElement.id === 'me-name') return;
     const all = Lib.live.filter((x) => !x.fixed), songs = new Set(); Lib.live.forEach((x) => x.data.songs.forEach((g) => songs.add((g.title || '').trim())));
@@ -6682,6 +6754,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
         <p class="muted" style="margin-top:10px">팀원을 더하려면 이 페이지의 공유 메뉴에서 그 사람을 쓰기 권한(참여자, Contributor)으로 초대하세요. 초대받은 사람이 Claude에 로그인해 이 페이지를 열면 자동으로 명단에 올라옵니다.</p></div>`
       : `<div class="svc"><div class="acct"><div><b>${WEB.on ? '이 기기에서 쓸 이름' : '로그인되지 않았습니다'}</b><span>${WEB.on ? '소통 글에 이 이름이 표시됩니다.' : 'Claude 안에서 이 페이지를 열면 Claude 계정으로 자동 로그인됩니다.'}</span></div></div><label class="f" for="me-name">이름 (소통에 표시됩니다)</label><input id="me-name" type="text" value="${esc(ME.name)}" autocomplete="name">${posSel}
       <p class="muted" style="margin-top:12px">지금은 이름과 자리, 알림 확인, 내 메모가 이 기기에만 저장됩니다.</p></div>`;
+    if (WEB.on) { renderMeWeb(all, songs); return; }
     const webCard = WEB.on ? `<div class="svc"><h3 style="margin-top:0">팀 자료 연동</h3><p class="pass">이 주소를 여는 모든 기기가 같은 예배 자료를 봅니다. 고치는 것은 팀 암호를 넣은 기기만 할 수 있습니다.</p>
         ${Lib.ro ? (WEB.has === false ? `<label class="f" for="wp-new">팀 암호 정하기 (6자 이상, 처음 한 번)</label><input id="wp-new" type="password" autocomplete="new-password"><button class="btn" data-act="web-set" style="margin-top:10px">이 암호로 정하고 편집 시작</button>`
           : `<label class="f" for="wp-pass">팀 암호</label><input id="wp-pass" type="password" autocomplete="current-password"><button class="btn" data-act="web-unlock" style="margin-top:10px">편집 잠금 풀기</button>`)
@@ -6721,7 +6794,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       else if (!w) el.innerHTML = listPills() + `<div class="empty"><b>${S.list ? esc(S.list) + ' 목록에 예배가 없습니다' : '아직 예배가 없습니다'}</b><p>아래 버튼으로 예배 준비를 시작하세요.</p><button class="btn" data-edit data-act="prep" style="margin-top:14px">+ 예배 준비</button></div>`;
       else {
         const d = w.data, id = esc(w.id), ym = String(d.date).slice(0, 7).replace('-', '.'), day = String(d.date).slice(8, 10), wd = ['일', '월', '화', '수', '목', '금', '토'][new Date(d.date + 'T12:00:00').getDay()] || '', pages = d.songs.reduce((n, x) => n + (x.pages || []).length, 0);
-        const lockNote = WEB.on && Lib.ro ? `<button class="locknote" data-act="web-go"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>${WEB.offline ? '인터넷이 끊겨 마지막 자료를 보여 줍니다' : '보기 전용'}</span>${WEB.offline ? '' : '<b>팀 암호 넣기</b>'}</button>` : '';
+        const lockNote = WEB.on && Lib.ro ? `<button class="locknote" data-act="web-go"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>${WEB.offline ? '인터넷이 끊겨 마지막 자료를 보여 줍니다' : '보기 전용'}</span>${WEB.offline ? '' : (AUTH.on ? '<b>승인 기다리는 중</b>' : '<b>로그인</b>')}</button>` : '';
         el.innerHTML = lockNote + `<div class="wkhead"><p class="dt"><span>${esc(ym)}</span><b>${esc(day)}</b></p><div><p class="k">${wd ? wd + '요일 ' : ''}예배 순서지</p><h2>${esc(d.title || '이번 주 예배')}</h2>${d.passage ? `<p class="pass">${esc(d.passage)}</p>` : ''}</div></div>
         ${listPills()}
         <div class="wkpick"><select id="week-pick" aria-label="볼 예배 고르기">${Lib.live.filter((x) => !x.fixed).map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? 'selected' : ''}>${esc(x.date)} · ${esc(x.title)}${x.published ? '' : ' · 초안'}</option>`).join('')}</select><div class="wkmeta"><span class="tag ${w.published ? 'pub' : 'dr'}">${w.published ? '팀 공개' + (w.version ? ' · v' + w.version : '') : '초안'}</span><button class="ic" data-act="refresh" aria-label="새로 고침"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.500-4M4 4v4h4M4 13a8 8 0 0014.500 4M20 20v-4h-4"/></svg></button><button class="open" data-act="card-edit" data-id="${id}">${Lib.ro ? '자세히 보기' : '예배 준비 열기'}</button></div></div>
@@ -7680,6 +7753,8 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     const a = b.dataset.act, i = +b.dataset.i, id = b.dataset.id;
     if (PS.open && (a === 'dl' || a === 'dl-pdf')) setTimeout(() => renderPS(true), 40);
     if (a.indexOf('wb-') === 0) return wbClick(a, b);
+    if (a === 'sso') return signIn(b.dataset.v);
+    if (a === 'sso-out') { signOut(); toast('로그아웃했습니다.'); syncSet(); return renderHome(); }
     if (a === 'web-unlock' || a === 'web-set') { const st = $('#wp-status'), fresh = a === 'web-set', v = ($(fresh ? '#wp-new' : '#wp-pass').value || '').trim(); if (v.length < (fresh ? 6 : 1)) { st.textContent = fresh ? '암호는 6자 이상으로 정해 주세요.' : '암호를 넣어 주세요.'; st.className = 'status warn'; return; }
       st.textContent = '확인하는 중…'; st.className = 'status busy'; b.disabled = true;
       return webUnlock(v, fresh, fresh ? WEB.pass : '').then((ok) => { if (ok) { S.wpChange = false; syncSet(); toast(fresh ? '팀 암호를 정했습니다. 이 기기에서 편집할 수 있습니다.' : '이 기기에서 편집할 수 있습니다.'); renderHome(); } else { const s2 = $('#wp-status'); b.disabled = false; if (s2) { s2.textContent = '암호가 맞지 않습니다.'; s2.className = 'status warn'; } } }, () => { const s2 = $('#wp-status'); b.disabled = false; if (s2) { s2.textContent = '서버에 닿지 못했습니다. 잠시 뒤 다시 눌러 주세요.'; s2.className = 'status warn'; } }); }
@@ -7844,6 +7919,10 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
     const el = e.target, a = el.dataset.act;
     if (el.id === 'file') { addFiles(Array.from(el.files)); el.value = ''; }
     else if (el.id === 'imp') { importFiles(Array.from(el.files)); el.value = ''; }
+    else if (WEB.on && ACC.member && (el.id === 'me-pos' || el.id === 'me-name')) { const nm = ($('#me-name') || {}).value || '', pos = ($('#me-pos') || {}).value || ''; ME.position = pos; LSset('lop-me', ME);
+      ensureSession().then(() => rpc('lop_update_me', { nm: nm.trim(), pos })).then((ok) => { const st = $('#me-acct-status'); if (ok) { ACC.member.name = nm.trim(); ACC.member.position = pos; AUTH.name = nm.trim(); PROF[ACC.member.user_id] = { name: nm.trim() || '팀원', avatarUrl: ACC.member.avatar }; const mm = ACC.members.find((x) => x.user_id === ACC.member.user_id); if (mm) { mm.name = nm.trim(); mm.position = pos; } if (st) { st.textContent = '✓ 저장했습니다'; st.className = 'status busy'; } renderChrome(); } else if (st) { st.textContent = '저장하지 못했습니다. 다시 로그인해 주세요.'; st.className = 'status warn'; } }, () => toast('서버에 닿지 못했습니다.')); }
+    else if (el.classList && el.classList.contains('rolesel')) { const uid = el.dataset.uid, r = el.value; if (r === 'remove' && !confirm('이 사람을 팀원 명단에서 뺄까요?')) { renderMe(); return; }
+      ensureSession().then(() => rpc('lop_set_role', { uid, r })).then((ok) => { if (ok) { if (r === 'remove') ACC.members = ACC.members.filter((x) => x.user_id !== uid); else { const mm = ACC.members.find((x) => x.user_id === uid); if (mm) mm.role = r; } toast(r === 'remove' ? '명단에서 뺐습니다.' : '✓ ' + ROLE_KO[r] + '(으)로 바꿨습니다.'); } else toast('바꾸지 못했습니다. 관리자만 바꿀 수 있습니다.'); renderMe(); }, () => toast('서버에 닿지 못했습니다.')); }
     else if (el.id === 'me-pos') { ME.position = el.value; LSset('lop-me', ME); saveMember().then(() => { if (!$('#v-me').hidden) renderMe(); }); }
     else if (el.id === 'talk-pick') { S.talkId = el.value; S.replyTo = null; renderTalk(); }
     else if (el.id === 'week-pick') { S.weekId = el.value; renderHome(); }
