@@ -6742,7 +6742,9 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
         ${AUTH.owner ? '<p class="muted" style="margin-top:10px">새로 로그인한 사람은 「승인 대기」로 들어옵니다. 팀원으로 바꾸면 예배를 고칠 수 있습니다.</p>' : ''}</div>` : '';
     const data = `<div class="svc"><h3 style="margin-top:0">자료</h3><p class="pass">예배 ${all.length}건 · 곡 ${songs.size}곡 · 이 주소를 여는 모든 기기에 보입니다.</p>
         <div class="acts"><button class="btn sec" data-act="lib-export">전체 백업 내보내기</button><button class="btn sec" data-edit data-act="imp">백업·PPT·가사 파일 가져오기</button></div><p id="me-status" class="status" role="status"></p></div>`;
-    $('#me').innerHTML = acct + team + data;
+    const pass = Lib.ro ? `<div class="svc"><h3 style="margin-top:0">비밀번호로 편집 열기</h3><p class="pass">로그인 연결 전까지 쓰는 임시 방법입니다.</p><label class="f" for="wp-pass">비밀번호</label><input id="wp-pass" type="password" inputmode="numeric" autocomplete="current-password"><button class="btn" data-act="web-unlock" style="margin-top:10px">편집 열기</button><p id="wp-status" class="status" role="status"></p></div>`
+      : WEB.pass ? '<div class="svc"><p class="meta"><b>✓ 이 기기는 비밀번호로 편집이 열려 있습니다</b></p></div>' : '';
+    $('#me').innerHTML = pass + acct + team + data;
   }
   function renderMe() {
     if (document.activeElement && document.activeElement.id === 'me-name') return;
@@ -6795,7 +6797,7 @@ if (typeof module !== 'undefined') module.exports = SFPPT;
       else if (!w) el.innerHTML = listPills() + `<div class="empty"><b>${S.list ? esc(S.list) + ' 목록에 예배가 없습니다' : '아직 예배가 없습니다'}</b><p>아래 버튼으로 예배 준비를 시작하세요.</p><button class="btn" data-edit data-act="prep" style="margin-top:14px">+ 예배 준비</button></div>`;
       else {
         const d = w.data, id = esc(w.id), ym = String(d.date).slice(0, 7).replace('-', '.'), day = String(d.date).slice(8, 10), wd = ['일', '월', '화', '수', '목', '금', '토'][new Date(d.date + 'T12:00:00').getDay()] || '', pages = d.songs.reduce((n, x) => n + (x.pages || []).length, 0);
-        const lockNote = WEB.on && Lib.ro ? `<button class="locknote" data-act="web-go"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>${WEB.offline ? '인터넷이 끊겨 마지막 자료를 보여 줍니다' : '보기 전용'}</span>${WEB.offline ? '' : (AUTH.on ? '<b>승인 기다리는 중</b>' : '<b>로그인</b>')}</button>` : '';
+        const lockNote = WEB.on && Lib.ro ? `<button class="locknote" data-act="web-go"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>${WEB.offline ? '인터넷이 끊겨 마지막 자료를 보여 줍니다' : '보기 전용'}</span>${WEB.offline ? '' : '<b>편집 열기</b>'}</button>` : '';
         el.innerHTML = lockNote + `<div class="wkhead"><p class="dt"><span>${esc(ym)}</span><b>${esc(day)}</b></p><div><p class="k">${wd ? wd + '요일 ' : ''}예배 순서지</p><h2>${esc(d.title || '이번 주 예배')}</h2>${d.passage ? `<p class="pass">${esc(d.passage)}</p>` : ''}</div></div>
         ${listPills()}
         <div class="wkpick"><select id="week-pick" aria-label="볼 예배 고르기">${Lib.live.filter((x) => !x.fixed).map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? 'selected' : ''}>${esc(x.date)} · ${esc(x.title)}${x.published ? '' : ' · 초안'}</option>`).join('')}</select><div class="wkmeta"><span class="tag ${w.published ? 'pub' : 'dr'}">${w.published ? '팀 공개' + (w.version ? ' · v' + w.version : '') : '초안'}</span><button class="ic" data-act="refresh" aria-label="새로 고침"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.500-4M4 4v4h4M4 13a8 8 0 0014.500 4M20 20v-4h-4"/></svg></button><button class="open" data-act="card-edit" data-id="${id}">${Lib.ro ? '자세히 보기' : '예배 준비 열기'}</button></div></div>
